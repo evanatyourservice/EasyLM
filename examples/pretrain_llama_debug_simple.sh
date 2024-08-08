@@ -35,7 +35,7 @@ python -m EasyLM.models.llama.llama_train \
     --eval_dataset.huggingface_dataset.batch_size=32 \
     --eval_dataset.huggingface_dataset.split='train' \
     --eval_dataset.huggingface_dataset.name='sample-10BT' \
-    --train_dataset.huggingface_dataset.cache_dir="$HOME/bucket/evan_llm/fw_10b" \
+    --eval_dataset.huggingface_dataset.cache_dir="$HOME/bucket/evan_llm/fw_10b" \
     --checkpointer.save_optimizer_state=True \
     --logger.online=True \
     --logger.prefix='EasyLM' \
