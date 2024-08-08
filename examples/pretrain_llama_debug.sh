@@ -24,7 +24,7 @@ export LIBTPU_INIT_ARGS='--xla_jf_spmd_threshold_for_windowed_einsum_mib=0 --xla
 
 python -m EasyLM.models.llama.llama_train \
     --mesh_dim='-1,2,1' \
-    --dtype='bfloat16' \
+    --dtype='fp32' \
     --total_steps=200000 \
     --log_freq=250 \
     --save_model_freq=1000000 \
@@ -60,6 +60,6 @@ python -m EasyLM.models.llama.llama_train \
     --logger.online=True \
     --logger.prefix='EasyLM' \
     --logger.project="open_llama_evan" \
-    --logger.output_dir="gs://uscentral1stuff/evan_llm" \
-    --logger.wandb_dir="/dev/shm/experiment_output/open_llama_7b" \
+    --logger.output_dir="~/bucket/eval_llm/hf_cache" \
+    --logger.wandb_dir="~/bucket/eval_llm/hf_cache" \
 |& tee $HOME/output.txt
