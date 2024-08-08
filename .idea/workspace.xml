@@ -5,15 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="991419fb-e238-40d2-8fe2-c54e5acc1488" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/EasyLM.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EasyLM/data_adjusted_2.py" beforeDir="false" afterPath="$PROJECT_DIR$/EasyLM/data_adjusted_2.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/EasyLM/models/llama/llama_train.py" beforeDir="false" afterPath="$PROJECT_DIR$/EasyLM/models/llama/llama_train.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/setup_v4-x.sh" beforeDir="false" afterPath="$PROJECT_DIR$/setup_v4-x.sh" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
