@@ -60,6 +60,6 @@ python -m EasyLM.models.llama.llama_train \
     --logger.online=True \
     --logger.prefix='EasyLM' \
     --logger.project="open_llama_evan" \
-    --logger.output_dir="$HOME/bucket/eval_llm/hf_cache" \
-    --logger.wandb_dir="$HOME/bucket/eval_llm/hf_cache" \
+    --logger.output_dir="$HOME/bucket/evan_llm/hf_cache" \
+    --logger.wandb_dir="$HOME/bucket/evan_llm/hf_cache" \
 |& tee $HOME/output.txt
