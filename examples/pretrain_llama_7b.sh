@@ -43,4 +43,3 @@ python -m EasyLM.models.llama.llama_train \
     --logger.output_dir="/path/to/checkpoint/dir" \
     --logger.wandb_dir="$HOME/experiment_output/open_llama_7b" \
 |& tee $HOME/output.txt
-
