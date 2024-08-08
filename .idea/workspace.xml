@@ -5,7 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="991419fb-e238-40d2-8fe2-c54e5acc1488" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/scripts/tpu_vm_setup_evan.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -32,13 +32,14 @@
     "ASKED_ADD_EXTERNAL_FILES": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/Users/evanwalters/EasyLM/EasyLM",
+    "last_opened_file_path": "/Users/evanwalters/EasyLM/scripts",
     "two.files.diff.last.used.file": "/Users/evanwalters/EasyLM/EasyLM/data_adjusted.py",
     "two.files.diff.last.used.folder": "/Users/evanwalters/omead/EasyLM"
   }
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/scripts" />
       <recent name="$PROJECT_DIR$/EasyLM" />
     </key>
   </component>
