@@ -12,7 +12,7 @@ from jax.sharding import PartitionSpec as PS
 from flax.training.train_state import TrainState
 from transformers import AutoTokenizer
 
-from EasyLM.data import DatasetFactory
+from EasyLM.data_adjusted_2 import DatasetFactory
 from EasyLM.checkpoint import StreamingCheckpointer
 from EasyLM.optimizers import OptimizerFactory
 from EasyLM.jax_utils import (

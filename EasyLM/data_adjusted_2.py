@@ -144,6 +144,7 @@ class HuggingfaceDataset(object):
         config.batch_size = 128
         config.always_start_with_bos = False
         config.batch_token_dtype = 'i4'
+        config.cache_dir = '~/bucket/eval_llm/hf_cache'
         return mlxu.update_config_dict(config, updates)
 
     def __init__(self, config, tokenizer, text_processor):
@@ -180,7 +181,8 @@ class HuggingfaceDataset(object):
             self.config.path,
             name,
             split=split,
-            streaming=self.config.streaming
+            streaming=self.config.streaming,
+            cache_dir=self.config.cache_dir,
         )
 
     def __iter__(self):

@@ -25,7 +25,7 @@ fi
 # Set variables
 TPU_NAME="LLaMA"
 ZONE="us-central2-b"
-REPO_URL="https://${PRIVATE_TOKEN}@github.com/opooladz/EasyLM.git"
+REPO_URL="https://github.com/evanatyourservice/EasyLM.git"
 
 # Function to run command on all TPU VM workers
 run_on_all_workers() {
