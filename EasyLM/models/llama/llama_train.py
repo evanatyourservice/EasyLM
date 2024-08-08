@@ -1,3 +1,6 @@
+import filelock
+filelock.FileLock = filelock.SoftFileLock
+
 import pprint
 from functools import partial
 
@@ -24,6 +27,11 @@ from EasyLM.jax_utils import (
 from EasyLM.models.llama.llama_model import (
     LLaMAConfigurator, FlaxLLaMAForCausalLMModule
 )
+
+import datasets.config as ds_config
+
+ds_config.STREAMING_READ_MAX_RETRIES = 86400 // 5  # Retry for 24 hours.
+ds_config.STREAMING_READ_RETRY_INTERVAL = 5
 
 
 FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(

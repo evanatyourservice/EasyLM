@@ -6,12 +6,7 @@ from multiprocessing import Pool
 
 import mlxu
 import numpy as np
-import datasets.config as ds_config
 from datasets import load_dataset
-
-
-ds_config.STREAMING_READ_MAX_RETRIES = 86400 // 5  # Retry for 24 hours.
-ds_config.STREAMING_READ_RETRY_INTERVAL = 5
 
 
 class DatasetFactory(object):
