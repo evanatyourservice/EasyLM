@@ -22,15 +22,15 @@ PYTHONPATH=${LEV_ROOT}:${LEV_ROOT}/src:${LEV_ROOT}/examples:$PYTHONPATH "$@"
 export LIBTPU_INIT_ARGS='--xla_jf_spmd_threshold_for_windowed_einsum_mib=0 --xla_tpu_spmd_threshold_for_allgather_cse=10000 --xla_enable_async_all_gather=true --xla_tpu_enable_latency_hiding_scheduler=true TPU_MEGACORE=MEGACORE_DENSE'
 
 
-python -m EasyLM.models.llama.llama_train_prune \
-    --mesh_dim='-1,8,1' \
+python -m EasyLM.models.llama.llama_train \
+    --mesh_dim='-1,1,1' \
     --dtype='bfloat16' \
     --total_steps=200000 \
     --log_freq=500 \
-    --save_model_freq=5000 \
-    --save_milestone_freq=25000 \
-    --eval_steps 10\
-    --load_llama_config='7b' \
+    --save_model_freq=0 \
+    --save_milestone_freq=0 \
+    --eval_steps 10 \
+    --load_llama_config='1b' \
     --update_llama_config='' \
     --load_dataset_state='' \
     --load_checkpoint='' \
@@ -59,7 +59,7 @@ python -m EasyLM.models.llama.llama_train_prune \
     --checkpointer.save_optimizer_state=True \
     --logger.online=True \
     --logger.prefix='EasyLM' \
-    --logger.project="open_llama_7b" \
-    --logger.output_dir="gs://caltech-bucket/LLM/easyLM/7bSMD1/experiment_output/llama3-log" \
+    --logger.project="open_llama_evan" \
+    --logger.output_dir="gs://uscentral1stuff/evan_llm" \
     --logger.wandb_dir="/dev/shm/experiment_output/open_llama_7b" \
 |& tee $HOME/output.txt

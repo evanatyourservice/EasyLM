@@ -50,7 +50,7 @@ bash .setup_v4-x.sh  --private_git_token your_private_token_here
 ## Training Launch Script
 
 ```shell
-gcloud compute tpus tpu-vm ssh LLaMA --zone us-central2-b --worker=all --command 'export WANDB_API_KEY='your_key' &&  cd EasyLM && bash ./examples/pretrain_llama_3b.sh'
+gcloud compute tpus tpu-vm ssh LLaMA --zone us-central2-b --worker=all --command 'export WANDB_API_KEY='your_key' &&  cd EasyLM && bash ./examples/pretrain_llama_debug.sh'
 ```
 
 ## Useful commands 
