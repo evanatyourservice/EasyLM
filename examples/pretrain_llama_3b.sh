@@ -62,7 +62,4 @@ python -m EasyLM.models.llama.llama_train_prune \
     --logger.project="open_llama_7b" \
     --logger.output_dir="gs://caltech-bucket/LLM/easyLM/7bSMD1/experiment_output/llama3-log" \
     --logger.wandb_dir="/dev/shm/experiment_output/open_llama_7b" \
-    --q=1.05 \
-    --starting_q=None \
-    --q_decay_steps=10000 \
 |& tee $HOME/output.txt
