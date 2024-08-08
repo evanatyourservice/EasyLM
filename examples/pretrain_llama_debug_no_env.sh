@@ -1,7 +1,5 @@
 #! /bin/bash
 
-export LIBTPU_INIT_ARGS='--xla_jf_spmd_threshold_for_windowed_einsum_mib=0 --xla_tpu_spmd_threshold_for_allgather_cse=10000 --xla_enable_async_all_gather=true --xla_tpu_enable_latency_hiding_scheduler=true TPU_MEGACORE=MEGACORE_DENSE'
-
 python -m EasyLM.models.llama.llama_train \
     --mesh_dim='-1,1,1' \
     --dtype='fp32' \
