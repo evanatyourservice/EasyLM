@@ -159,7 +159,6 @@ class HuggingfaceDataset(object):
             split=split,
             streaming=self.config.streaming,
             cache_dir=self.config.cache_dir,
-            num_proc=8,
         )
 
     def __iter__(self):
