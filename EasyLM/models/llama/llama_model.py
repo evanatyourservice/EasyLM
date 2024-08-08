@@ -105,8 +105,8 @@ class LLaMAConfigurator(object):
             'llama_350m': dict(
                 base_model='llama_350m',
                 hidden_size=1024,
-                intermediate_size=3072,
-                num_hidden_layers=24,
+                intermediate_size=2816,
+                num_hidden_layers=18,
                 num_attention_heads=16,
                 num_key_value_heads=16,
                 rms_norm_eps=1e-6,
