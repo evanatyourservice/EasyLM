@@ -139,7 +139,12 @@ def main(argv):
 
     train_state_shapes = jax.eval_shape(init_fn, next_rng())
 
-    total_params = sum([np.prod(x.shape) for x in jax.tree.leaves(train_state_shapes)])
+    total_params = sum(
+        [
+            np.prod(x.shape)
+            for x in jax.tree.leaves(train_state_shapes.params)
+        ]
+    )
     print(f"Total number of parameters: {total_params}")
 
     train_state_partition = match_partition_rules(
