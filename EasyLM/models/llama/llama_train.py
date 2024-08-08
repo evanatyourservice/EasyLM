@@ -138,6 +138,10 @@ def main(argv):
         return rng_generator(), metrics
 
     train_state_shapes = jax.eval_shape(init_fn, next_rng())
+
+    total_params = sum([np.prod(x.shape) for x in jax.tree.leaves(train_state_shapes)])
+    print(f"Total number of parameters: {total_params}")
+
     train_state_partition = match_partition_rules(
         LLaMAConfigurator.get_partition_rules(), train_state_shapes
     )

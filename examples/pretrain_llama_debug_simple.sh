@@ -22,8 +22,8 @@ python -m EasyLM.models.llama.llama_train \
     --train_dataset.text_processor.fields='text' \
     --train_dataset.huggingface_dataset.path='HuggingFaceFW/fineweb-edu' \
     --train_dataset.huggingface_dataset.streaming=True \
-    --train_dataset.huggingface_dataset.seq_length=256 \
-    --train_dataset.huggingface_dataset.batch_size=32 \
+    --train_dataset.huggingface_dataset.seq_length=2048 \
+    --train_dataset.huggingface_dataset.batch_size=128 \
     --train_dataset.huggingface_dataset.split='train' \
     --train_dataset.huggingface_dataset.name='sample-100BT' \
     --train_dataset.huggingface_dataset.cache_dir="$HOME/bucket/evan_llm/fw_100b" \
@@ -31,8 +31,8 @@ python -m EasyLM.models.llama.llama_train \
     --eval_dataset.text_processor.fields='text' \
     --eval_dataset.huggingface_dataset.path='HuggingFaceFW/fineweb-edu' \
     --eval_dataset.huggingface_dataset.streaming=True \
-    --eval_dataset.huggingface_dataset.seq_length=256 \
-    --eval_dataset.huggingface_dataset.batch_size=32 \
+    --eval_dataset.huggingface_dataset.seq_length=2048 \
+    --eval_dataset.huggingface_dataset.batch_size=128 \
     --eval_dataset.huggingface_dataset.split='train' \
     --eval_dataset.huggingface_dataset.name='sample-10BT' \
     --eval_dataset.huggingface_dataset.cache_dir="$HOME/bucket/evan_llm/fw_10b" \
