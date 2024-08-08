@@ -10,7 +10,7 @@ import datasets.config as ds_config
 from datasets import load_dataset
 
 
-ds_config.STREAMING_READ_MAX_RETRIES = 86400 // 5  # all day long
+ds_config.STREAMING_READ_MAX_RETRIES = 86400 // 5  # Retry for 24 hours.
 ds_config.STREAMING_READ_RETRY_INTERVAL = 5
 
 
@@ -144,7 +144,7 @@ class HuggingfaceDataset(object):
         config.batch_size = 128
         config.always_start_with_bos = False
         config.batch_token_dtype = 'i4'
-        config.cache_dir = '~/bucket/eval_llm/hf_cache'
+        config.cache_dir = '/dev/shm/hf/'
         return mlxu.update_config_dict(config, updates)
 
     def __init__(self, config, tokenizer, text_processor):
@@ -153,30 +153,6 @@ class HuggingfaceDataset(object):
         split = self.config.split if self.config.split != '' else None
         self._tokenizer = tokenizer
         self._text_processor = text_processor
-        """
-        def load_dataset(path: str,
-                 name: str | None = None,
-                 data_dir: str | None = None,
-                 data_files: str | Sequence[str] | Mapping[str, str | Sequence[str]] | None = None,
-                 split: str | Split | None = None,
-                 cache_dir: str | None = None,
-                 features: Features | None = None,
-                 download_config: DownloadConfig | None = None,
-                 download_mode: DownloadMode | str | None = None,
-                 verification_mode: VerificationMode | str | None = None,
-                 ignore_verifications: Any = "deprecated",
-                 keep_in_memory: bool | None = None,
-                 save_infos: bool = False,
-                 revision: str | Version | None = None,
-                 token: bool | str | None = None,
-                 use_auth_token: Any = "deprecated",
-                 task: str = "deprecated",
-                 streaming: bool = False,
-                 num_proc: int | None = None,
-                 storage_options: dict | None = None,
-                 trust_remote_code: bool | None = None,
-                 **config_kwargs: Any)
-        """
         self._dataset = load_dataset(
             self.config.path,
             name,

@@ -30,7 +30,7 @@ class LLaMAConfigurator(object):
     @classmethod
     def get_default_config(cls, updates=None):
         config = mlxu.config_dict()
-        config.base_model = 'llama_1b'
+        config.base_model = 'debug'
         config.vocab_size = mlxu.config_placeholder(int)
         config.hidden_size = mlxu.config_placeholder(int)
         config.intermediate_size = mlxu.config_placeholder(int)
