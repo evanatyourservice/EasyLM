@@ -39,6 +39,32 @@ Koala is our new chatbot fine-tuned on top of LLaMA. If you are interested in
 our Koala chatbot, you can check out the [blogpost](https://bair.berkeley.edu/blog/2023/04/03/koala/)
 and [documentation for running it locally](docs/koala.md).
 
+## Installation on v4-32 
+
+I wrote a script that worked for me....
+
+```shell
+bash .setup_v4-x.sh  --private_git_token your_private_token_here
+```
+
+## Training Launch Script
+
+```shell
+gcloud compute tpus tpu-vm ssh LLaMA --zone us-central2-b --worker=all --command 'export WANDB_API_KEY='your_key' &&  cd EasyLM && bash ./examples/pretrain_llama_3b.sh'
+```
+
+## Useful commands 
+If you suspect the TPU is in use and wanna see who it is...
+
+```shell
+gcloud compute tpus tpu-vm ssh LLaMA --zone us-central2-b --worker=all --command 'sudo lsof -w /dev/accel0'
+```
+
+If TPUs have a python process that u need to kill (use with causion -- ideally you can use htop first to kill)
+
+```shell
+gcloud compute tpus tpu-vm ssh LLaMA --zone us-central2-b --worker=all --command 'pkill -9 python'
+```
 
 ## Installation
 The installation method differs between GPU hosts and Cloud TPU hosts. The first
