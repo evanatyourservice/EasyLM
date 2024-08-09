@@ -31,6 +31,7 @@ class OptimizerFactory(object):
         config.type = 'adamw'
         config.palm_optimizer = PalmOptimizerFactory.get_default_config()
         config.adamw_optimizer = AdamWOptimizerFactory.get_default_config()
+        config.psgd_optimizer = PSGDOptimizerFactory.get_default_config()
 
         if updates is not None:
             config.update(ConfigDict(updates).copy_and_resolve_references())
@@ -46,6 +47,10 @@ class OptimizerFactory(object):
         elif config.type == 'adamw':
             optimizer, optimizer_info = AdamWOptimizerFactory.get_optimizer(
                 config.adamw_optimizer, weight_decay_mask
+            )
+        elif config.type == 'psgd':
+            optimizer, optimizer_info = PSGDOptimizerFactory.get_optimizer(
+                config.psgd_optimizer, weight_decay_mask
             )
         else:
             raise ValueError(f'Unknown optimizer type: {config.type}')
@@ -68,15 +73,16 @@ class PSGDOptimizerFactory(object):
     def get_default_config(updates=None):
         config = ConfigDict()
         config.init_lr = 0.0
-        config.end_lr = 0.001
-        config.lr = 0.01
-        config.lr_warmup_steps = 2000
+        config.end_lr = 0.0
+        config.lr = 0.001
+        config.lr_warmup_steps = 512
         config.lr_decay_steps = 500000
         config.b1 = 0.9
         config.b2 = 0.95
         config.clip_gradient = 1.0
-        config.weight_decay = 1e-4
+        config.weight_decay = 0.01
         config.bf16_momentum = True
+        config.bf16_preconditioner = False
         config.multiply_by_parameter_scale = False
 
         if updates is not None:

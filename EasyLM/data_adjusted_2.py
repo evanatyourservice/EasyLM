@@ -160,7 +160,8 @@ class HuggingfaceDataset(object):
             streaming=self.config.streaming,
             cache_dir=self.config.cache_dir,
         )
-        self._dataset = DataLoader(self._dataset, num_workers=4)
+        # TODO (evanatyourservice)
+        # self._dataset = DataLoader(self._dataset, num_workers=8)
 
     def _iter(self):
         chunk_size = self.config.batch_size * self.config.seq_length
@@ -169,10 +170,10 @@ class HuggingfaceDataset(object):
             token_buffer = []
             loss_mask_buffer = []
             for index, example in enumerate(self._dataset):
-                index, example = jax.tree.map(
-                    lambda x: x.numpy() if hasattr(x, 'numpy') else x,
-                    (index, example)
-                )
+                # index, example = jax.tree.map(
+                #     lambda x: x.numpy() if hasattr(x, 'numpy') else x,
+                #     (index, example)
+                # )
                 tokens, loss_masks = self.text_processor(example)
                 token_buffer.extend(tokens)
                 loss_mask_buffer.extend(loss_masks)
@@ -213,6 +214,7 @@ class HuggingfaceDataset(object):
 
         while True:
             yield queue.get()
+            print('Queue size:', queue.qsize())
 
     def get_state_dict(self):
         return dict(config=self.config)
