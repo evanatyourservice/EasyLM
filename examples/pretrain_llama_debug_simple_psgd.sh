@@ -19,9 +19,10 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.lr=1e-3 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
     --optimizer.psgd_optimizer.lr_decay_steps=25000 \
+    --optimizer.psgd_optimizer.b2=0.99 \
     --optimizer.psgd_optimizer.nesterov=True \
     --optimizer.psgd_optimizer.precond_update_probability=0.1 \
-    --optimizer.psgd_optimizer.precond_lr=0.1 \
+    --optimizer.psgd_optimizer.precond_lr=0.01 \
     --optimizer.psgd_optimizer.normalize=True \
     --optimizer.psgd_optimizer.adaptive=True \
     --optimizer.psgd_optimizer.bf16_momentum=True \
