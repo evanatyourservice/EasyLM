@@ -13,6 +13,7 @@ import jax.numpy as jnp
 import numpy as np
 from absl import logging
 import optax
+from optax._src import transform
 
 from EasyLM.jax_utils import float_to_dtype
 from EasyLM.optimizers.psgd_xmat import scale_by_xmat
@@ -76,11 +77,16 @@ class PSGDOptimizerFactory(object):
         config.end_lr = 0.0
         config.lr = 0.001
         config.lr_warmup_steps = 512
-        config.lr_decay_steps = 500000
+        config.lr_decay_steps = 200000
         config.b1 = 0.9
         config.b2 = 0.95
         config.clip_gradient = 1.0
         config.weight_decay = 0.01
+        config.nesterov = True
+        config.precond_update_probability = 0.1
+        config.precond_lr = 0.1
+        config.normalize = True
+        config.adaptive = True
         config.bf16_momentum = True
         config.bf16_preconditioner = False
         config.multiply_by_parameter_scale = False
@@ -109,35 +115,24 @@ class PSGDOptimizerFactory(object):
             learning_rate_schedule=learning_rate_schedule,
         )
 
-        if config.multiply_by_parameter_scale:
-            optimizer = optax.chain(
-                optax.clip_by_global_norm(config.clip_gradient),
-                optax.adafactor(
-                    learning_rate=learning_rate_schedule,
-                    multiply_by_parameter_scale=True,
-                    momentum=config.b1,
-                    decay_rate=config.b2,
-                    factored=False,
-                    clipping_threshold=None,
-                    dtype_momentum=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
-                ),
-                optax_add_scheduled_weight_decay(
-                    lambda step: -learning_rate_schedule(step) * config.weight_decay,
-                    weight_decay_mask
-                )
-            )
-        else:
-            optimizer = optax.chain(
-                optax.clip_by_global_norm(config.clip_gradient),
-                optax.adamw(
-                    learning_rate=learning_rate_schedule,
-                    weight_decay=config.weight_decay,
-                    b1=config.b1,
-                    b2=config.b2,
-                    mask=weight_decay_mask,
-                    mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
-                ),
-            )
+        optimizer = optax.chain(
+            scale_by_xmat(
+                preconditioner_update_probability=config.precond_update_probability,
+                b1=config.b1,
+                nesterov=config.nesterov,
+                gradient_clip=None,
+                precond_lr=config.precond_lr,
+                mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
+                precond_dtype=jnp.bfloat16 if config.bf16_preconditioner else jnp.float32,
+                normalize=config.normalize,
+                adaptive=config.adaptive,
+                b2=config.b2,
+            ),
+            transform.add_decayed_weights(
+                config.weight_decay, mask=weight_decay_mask
+            ),
+            transform.scale_by_learning_rate(learning_rate_schedule),
+        )
 
         return optimizer, optimizer_info
 
