@@ -171,8 +171,8 @@ class LLaMAConfigurator(object):
                 intermediate_size=2064,
                 num_hidden_layers=12,
                 num_attention_heads=12,
-                num_key_value_heads=12,
-                max_position_embeddings=2048,
+                num_key_value_heads=4,
+                max_position_embeddings=4096,
                 rms_norm_eps=1e-5,
             ),
             'llama2_7b': dict(
