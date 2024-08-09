@@ -169,7 +169,10 @@ class HuggingfaceDataset(object):
             token_buffer = []
             loss_mask_buffer = []
             for index, example in enumerate(self._dataset):
-                index, example = jax.tree.map(lambda x: x.numpy(), (index, example))
+                index, example = jax.tree.map(
+                    lambda x: x.numpy() if hasattr(x, 'numpy') else x,
+                    (index, example)
+                )
                 tokens, loss_masks = self.text_processor(example)
                 token_buffer.extend(tokens)
                 loss_mask_buffer.extend(loss_masks)
