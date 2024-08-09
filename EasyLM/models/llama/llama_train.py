@@ -15,7 +15,7 @@ from jax.sharding import PartitionSpec as PS
 from flax.training.train_state import TrainState
 from transformers import AutoTokenizer
 
-from EasyLM.data_adjusted_2 import DatasetFactory
+from EasyLM.data_adjusted_2 import DatasetFactory, queue_batches
 from EasyLM.checkpoint import StreamingCheckpointer
 from EasyLM.optimizers import OptimizerFactory
 from EasyLM.jax_utils import (
@@ -73,6 +73,7 @@ def main(argv):
 
     tokenizer = AutoTokenizer.from_pretrained(FLAGS.tokenizer)
     dataset = DatasetFactory.load_dataset(FLAGS.train_dataset, tokenizer)
+
     if FLAGS.load_dataset_state != '':
         dataset.load_state_dict(mlxu.load_pickle(FLAGS.load_dataset_state))
 
@@ -180,6 +181,7 @@ def main(argv):
         donate_argnums=(0, ),
     )
 
+    # TODO (evanatyourservice): shard before in in shardings?
     sharded_train_step = pjit(
         train_step,
         in_shardings=(train_state_partition, PS(), PS()),

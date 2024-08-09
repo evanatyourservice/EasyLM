@@ -6,10 +6,10 @@ python -m EasyLM.models.llama.llama_train \
     --mesh_dim='-1,1,1' \
     --dtype='bfloat16' \
     --total_steps=200000 \
-    --log_freq=100 \
+    --log_freq=50 \
     --save_model_freq=1000000 \
     --save_milestone_freq=1000000 \
-    --eval_steps 5 \
+    --eval_steps 4 \
     --load_llama_config='3b' \
     --update_llama_config='' \
     --load_dataset_state='' \

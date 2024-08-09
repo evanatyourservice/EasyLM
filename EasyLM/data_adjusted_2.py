@@ -4,9 +4,13 @@ import json
 import base64
 from multiprocessing import Pool
 
+from threading import Thread
+from queue import Queue
+
 import mlxu
 import numpy as np
 from datasets import load_dataset
+from torch.utils.data import DataLoader
 
 
 class DatasetFactory(object):
@@ -134,7 +138,7 @@ class HuggingfaceDataset(object):
         config.path = 'HuggingFaceFW/fineweb-edu'
         config.name = 'sample-100BT'
         config.split = 'train'
-        config.streaming = False
+        config.streaming = True
         config.seq_length = 2048
         config.batch_size = 128
         config.always_start_with_bos = False
@@ -155,8 +159,9 @@ class HuggingfaceDataset(object):
             streaming=self.config.streaming,
             cache_dir=self.config.cache_dir,
         )
+        self._dataset = DataLoader(self._dataset, num_workers=4)
 
-    def __iter__(self):
+    def iter(self):
         chunk_size = self.config.batch_size * self.config.seq_length
         total_tokens = 0
         while True:
@@ -188,6 +193,21 @@ class HuggingfaceDataset(object):
                     yield batch, metrics
                     token_buffer = token_buffer[chunk_size:]
                     loss_mask_buffer = loss_mask_buffer[chunk_size:]
+
+    def __iter__(self):
+        n_queue = 20
+
+        def _keep_full(queue):
+            for item in self.iter():
+                queue.put(item)
+
+        queue = Queue(n_queue)
+        thread = Thread(target=_keep_full, args=(queue,))
+        thread.daemon = True
+        thread.start()
+
+        while True:
+            yield queue.get()
 
     def get_state_dict(self):
         return dict(config=self.config)
