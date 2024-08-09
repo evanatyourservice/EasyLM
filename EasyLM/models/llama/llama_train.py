@@ -109,7 +109,7 @@ def main(argv):
 
     def train_step(train_state, rng, batch):
         rng_generator = JaxRNG(rng)
-        batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
+        # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
         def loss_and_accuracy(params):
             logits = model.apply(
                 params, batch['input_tokens'], deterministic=False,
@@ -132,7 +132,7 @@ def main(argv):
 
     def eval_step(train_state, rng, batch):
         rng_generator = JaxRNG(rng)
-        batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
+        # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
         logits = model.apply(
             train_state.params, batch['input_tokens'], deterministic=True,
             rngs=rng_generator(LLaMAConfigurator.rng_keys()),
@@ -181,17 +181,16 @@ def main(argv):
         donate_argnums=(0, ),
     )
 
-    # TODO (evanatyourservice): shard before in in shardings?
     sharded_train_step = pjit(
         train_step,
-        in_shardings=(train_state_partition, PS(), PS()),
+        in_shardings=(train_state_partition, PS(), PS(('dp', 'fsdp'))),
         out_shardings=(train_state_partition, PS(), PS()),
         donate_argnums=(0, 1),
     )
 
     sharded_eval_step = pjit(
         eval_step,
-        in_shardings=(train_state_partition, PS(), PS()),
+        in_shardings=(train_state_partition, PS(), PS(('dp', 'fsdp'))),
         out_shardings=(PS(), PS()),
         donate_argnums=(1,),
     )
