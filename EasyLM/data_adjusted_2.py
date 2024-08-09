@@ -159,9 +159,9 @@ class HuggingfaceDataset(object):
             streaming=self.config.streaming,
             cache_dir=self.config.cache_dir,
         )
-        self._dataset = DataLoader(self._dataset, num_workers=4)
+        # self._dataset = DataLoader(self._dataset, num_workers=4)
 
-    def iter(self):
+    def _iter(self):
         chunk_size = self.config.batch_size * self.config.seq_length
         total_tokens = 0
         while True:
@@ -198,7 +198,7 @@ class HuggingfaceDataset(object):
         n_queue = 20
 
         def _keep_full(queue):
-            for item in self.iter():
+            for item in self._iter():
                 queue.put(item)
 
         queue = Queue(n_queue)
