@@ -11,6 +11,7 @@ python -m EasyLM.models.llama.llama_train \
     --save_milestone_freq=1000000 \
     --eval_steps 2 \
     --calc_hessian=False \
+    --update_prob=0.1 \
     --load_llama_config='3b' \
     --update_llama_config='' \
     --load_dataset_state='' \
@@ -23,7 +24,8 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.b2=0.95 \
     --optimizer.psgd_optimizer.nesterov=True \
     --optimizer.psgd_optimizer.precond_update_probability=0.1 \
-    --optimizer.psgd_optimizer.precond_lr=0.001 \
+    --optimizer.psgd_optimizer.precond_lr=0.01 \
+    --optimizer.psgd_optimizer.precond_init_scale=0.01 \
     --optimizer.psgd_optimizer.normalize=True \
     --optimizer.psgd_optimizer.adaptive=True \
     --optimizer.psgd_optimizer.bf16_momentum=True \

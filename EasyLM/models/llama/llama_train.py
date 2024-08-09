@@ -1,4 +1,6 @@
 import filelock
+import optax
+
 filelock.FileLock = filelock.SoftFileLock
 
 import pprint
@@ -28,6 +30,7 @@ from EasyLM.jax_utils import (
 from EasyLM.models.llama.llama_model import (
     LLaMAConfigurator, FlaxLLaMAForCausalLMModule
 )
+from EasyLM.optimizers.psgd_xmat import hessian_helper
 
 import datasets.config as ds_config
 
@@ -50,6 +53,7 @@ FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
     save_milestone_freq=0,
     eval_steps=0,
     calc_hessian=False,
+    update_prob=0.1,
     tokenizer='openlm-research/open_llama_3b_v2',
     train_dataset=DatasetFactory.get_default_config(),
     eval_dataset=DatasetFactory.get_default_config(),
@@ -120,6 +124,7 @@ def main(argv):
         return TrainState.create(params=params, tx=optimizer, apply_fn=None)
 
     def train_step(train_state, rng, batch):
+        rng, subkey = jax.random.split(rng)
         rng_generator = JaxRNG(rng)
         # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
         def loss_and_accuracy(params):
@@ -130,9 +135,33 @@ def main(argv):
             return cross_entropy_loss_and_accuracy(
                 logits, batch['target_tokens'], batch['loss_masks']
             )
-        grad_fn = jax.value_and_grad(loss_and_accuracy, has_aux=True)
-        (loss, accuracy), grads = grad_fn(train_state.params)
-        train_state = train_state.apply_gradients(grads=grads)
+        if FLAGS.calc_hessian:
+            loss_out, grads, hvp, vector, update_precond = hessian_helper(
+                subkey,
+                loss_and_accuracy,
+                train_state.params,
+                loss_fn_extra_args=(),
+                has_aux=True,
+                preconditioner_update_probability=FLAGS.update_prob,
+            )
+            loss, accuracy = loss_out
+
+            updates, opt_state = optimizer.update(
+                grads, train_state.opt_state, train_state.params,
+                Hvp=hvp, vector=vector, update_preconditioner=update_precond,
+            )
+            new_params = optax.apply_updates(train_state.params, updates)
+
+            train_state = train_state.replace(
+                step=train_state.step + 1,
+                params=new_params,
+                opt_state=opt_state,
+            )
+        else:
+            grad_fn = jax.value_and_grad(loss_and_accuracy, has_aux=True)
+            (loss, accuracy), grads = grad_fn(train_state.params)
+            train_state = train_state.apply_gradients(grads=grads)
+
         metrics = dict(
             loss=loss,
             accuracy=accuracy,

@@ -164,9 +164,8 @@ def scale_by_xmat(
         if not hessian_based_preconditioning:
             # update cond and vector not passed in, create here
             key, subkey = jax.random.split(key)
-            update_preconditioner = jnp.logical_or(
-                jax.random.uniform(subkey) < preconditioner_update_probability,
-                state.count < 10,
+            update_preconditioner = (
+                jax.random.uniform(subkey) < preconditioner_update_probability
             )
             key, subkey = jax.random.split(key)
             # TODO sharding
