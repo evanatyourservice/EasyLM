@@ -85,7 +85,7 @@ class PSGDOptimizerFactory(object):
         config.nesterov = True
         config.precond_update_probability = 0.1
         config.precond_lr = 0.01
-        config.precond_init_scale = None
+        config.precond_init_scale = 0.0
         config.normalize = True
         config.adaptive = True
         config.bf16_momentum = True
@@ -123,7 +123,9 @@ class PSGDOptimizerFactory(object):
                 nesterov=config.nesterov,
                 gradient_clip=None,
                 precond_lr=config.precond_lr,
-                precond_init_scale=config.precond_init_scale,
+                precond_init_scale=(
+                    config.precond_init_scale if config.precond_init_scale > 0.0 else None
+                ),
                 mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
                 precond_dtype=jnp.bfloat16 if config.bf16_preconditioner else jnp.float32,
                 normalize=config.normalize,
