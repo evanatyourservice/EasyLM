@@ -22,7 +22,7 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
     --optimizer.psgd_optimizer.lr_decay_steps=25000 \
     --optimizer.psgd_optimizer.b2=0.95 \
-    --optimizer.psgd_optimizer.nesterov=True \
+    --optimizer.psgd_optimizer.nesterov=False \
     --optimizer.psgd_optimizer.precond_update_probability=0.1 \
     --optimizer.psgd_optimizer.precond_lr=0.01 \
     --optimizer.psgd_optimizer.precond_init_scale=0.01 \
