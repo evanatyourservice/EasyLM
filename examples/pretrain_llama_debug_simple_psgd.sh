@@ -18,7 +18,7 @@ python -m EasyLM.models.llama.llama_train \
     --load_checkpoint='' \
     --optimizer.type='psgd' \
     --optimizer.psgd_optimizer.weight_decay=0.01 \
-    --optimizer.psgd_optimizer.lr=1e-3 \
+    --optimizer.psgd_optimizer.lr=3e-3 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
     --optimizer.psgd_optimizer.lr_decay_steps=25000 \
     --optimizer.psgd_optimizer.b2=0.95 \
