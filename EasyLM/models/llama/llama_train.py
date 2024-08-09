@@ -124,7 +124,6 @@ def main(argv):
         return TrainState.create(params=params, tx=optimizer, apply_fn=None)
 
     def train_step(train_state, rng, batch):
-        rng, subkey = jax.random.split(rng)
         rng_generator = JaxRNG(rng)
         # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
         def loss_and_accuracy(params):
@@ -137,7 +136,7 @@ def main(argv):
             )
         if FLAGS.calc_hessian:
             loss_out, grads, hvp, vector, update_precond = hessian_helper(
-                subkey,
+                rng,
                 loss_and_accuracy,
                 train_state.params,
                 loss_fn_extra_args=(),
