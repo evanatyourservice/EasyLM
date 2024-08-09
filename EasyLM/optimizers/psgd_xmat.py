@@ -387,25 +387,28 @@ def hessian_helper(
         update_preconditioner: bool, whether we're updating preconditioner this step.
     """
     obj_fn = lambda params: loss_fn(params, *loss_fn_extra_args)
-    key1, key2 = jax.random.split(key)
 
     def grad_fn(params):
         loss_out, grad = jax.value_and_grad(obj_fn, has_aux=has_aux)(params)
         return grad, loss_out
 
-    def hvp_fn(params):
-        vector = otu.tree_random_like(key1, params, jax.random.normal)
+    def hvp_fn(key, params):
+        vector = otu.tree_random_like(key, params, jax.random.normal)
         grad, hvp, loss_out = jax.jvp(grad_fn, (params,), (vector,), has_aux=True)
         return grad, loss_out, hvp, vector
 
-    def g_fn(params):
+    def g_fn(key, params):
         grad, loss_out = grad_fn(params)
         dummy_hvp = jax.tree.map(jnp.zeros_like, params)
         dummy_vector = jax.tree.map(jnp.zeros_like, params)
         return grad, loss_out, dummy_hvp, dummy_vector
 
-    update_precond = jax.random.uniform(key2) < preconditioner_update_probability
-    grad, loss_out, hvp, vector = jax.lax.cond(update_precond, hvp_fn, g_fn, params)
+    key, subkey = jax.random.split(key)
+    update_precond = jax.random.uniform(key) < preconditioner_update_probability
+    key, subkey = jax.random.split(key)
+    grad, loss_out, hvp, vector = jax.lax.cond(
+        update_precond, hvp_fn, g_fn, key, params
+    )
     return loss_out, grad, hvp, vector, update_precond
 
 

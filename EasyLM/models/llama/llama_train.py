@@ -126,6 +126,7 @@ def main(argv):
     def train_step(train_state, rng, batch):
         rng_generator = JaxRNG(rng)
         # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
+
         def loss_and_accuracy(params):
             logits = model.apply(
                 params, batch['input_tokens'], deterministic=False,
@@ -134,6 +135,7 @@ def main(argv):
             return cross_entropy_loss_and_accuracy(
                 logits, batch['target_tokens'], batch['loss_masks']
             )
+
         if FLAGS.calc_hessian:
             loss_out, grads, hvp, vector, update_precond = hessian_helper(
                 rng_generator(),
