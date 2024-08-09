@@ -64,7 +64,7 @@ class OptimizerFactory(object):
 
 
 class PSGDOptimizerFactory(object):
-    """ AdamW optimizer with cosine schedule. """
+    """ PSGD optimizer with linear schedule. """
 
     def __init__(self):
         raise NotImplementedError
@@ -210,14 +210,14 @@ class AdamWOptimizerFactory(object):
     def get_default_config(updates=None):
         config = ConfigDict()
         config.init_lr = 0.0
-        config.end_lr = 0.001
-        config.lr = 0.01
-        config.lr_warmup_steps = 2000
-        config.lr_decay_steps = 500000
+        config.end_lr = 0.0
+        config.lr = 0.001
+        config.lr_warmup_steps = 512
+        config.lr_decay_steps = 200000
         config.b1 = 0.9
         config.b2 = 0.95
         config.clip_gradient = 1.0
-        config.weight_decay = 1e-4
+        config.weight_decay = 0.01
         config.bf16_momentum = True
         config.multiply_by_parameter_scale = False
 
