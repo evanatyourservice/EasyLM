@@ -127,22 +127,23 @@ def main(argv):
         rng_generator = JaxRNG(rng)
         # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
 
-        def loss_and_accuracy(params):
+        def loss_and_accuracy(params, rngs):
             logits = model.apply(
                 params, batch['input_tokens'], deterministic=False,
-                rngs=rng_generator(LLaMAConfigurator.rng_keys()),
+                rngs=rngs,
             ).logits
             return cross_entropy_loss_and_accuracy(
                 logits, batch['target_tokens'], batch['loss_masks']
             )
 
+        rngs = rng_generator(LLaMAConfigurator.rng_keys())
         if FLAGS.calc_hessian:
             hess_rng, subkey = jax.random.split(hess_rng)
             loss_out, grads, hvp, vector, update_precond = hessian_helper(
                 subkey,
                 loss_and_accuracy,
                 train_state.params,
-                loss_fn_extra_args=(),
+                loss_fn_extra_args=(rngs,),
                 has_aux=True,
                 preconditioner_update_probability=FLAGS.update_prob,
             )
@@ -161,7 +162,7 @@ def main(argv):
             )
         else:
             grad_fn = jax.value_and_grad(loss_and_accuracy, has_aux=True)
-            (loss, accuracy), grads = grad_fn(train_state.params)
+            (loss, accuracy), grads = grad_fn(train_state.params, rngs)
             train_state = train_state.apply_gradients(grads=grads)
 
         metrics = dict(
