@@ -123,7 +123,7 @@ def main(argv):
         )
         return TrainState.create(params=params, tx=optimizer, apply_fn=None)
 
-    def train_step(train_state, rng, batch):
+    def train_step(train_state, rng, batch, hess_rng):
         rng_generator = JaxRNG(rng)
         # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
 
@@ -137,8 +137,9 @@ def main(argv):
             )
 
         if FLAGS.calc_hessian:
+            hess_rng, subkey = jax.random.split(hess_rng)
             loss_out, grads, hvp, vector, update_precond = hessian_helper(
-                rng_generator(),
+                subkey,
                 loss_and_accuracy,
                 train_state.params,
                 loss_fn_extra_args=(),
@@ -170,7 +171,7 @@ def main(argv):
             gradient_norm=global_norm(grads),
             param_norm=global_norm(train_state.params),
         )
-        return train_state, rng_generator(), metrics
+        return train_state, rng_generator(), metrics, hess_rng
 
     def eval_step(train_state, rng, batch):
         rng_generator = JaxRNG(rng)
@@ -225,8 +226,8 @@ def main(argv):
 
     sharded_train_step = pjit(
         train_step,
-        in_shardings=(train_state_partition, PS(), PS(('dp', 'fsdp'))),
-        out_shardings=(train_state_partition, PS(), PS()),
+        in_shardings=(train_state_partition, PS(), PS(('dp', 'fsdp')), PS()),
+        out_shardings=(train_state_partition, PS(), PS(), PS()),
         donate_argnums=(0, 1),
     )
 
@@ -275,12 +276,13 @@ def main(argv):
             save_checkpoint(train_state)
 
         sharded_rng = next_rng()
+        hess_rng = jax.random.PRNGKey(0)
 
         step_counter = trange(start_step, FLAGS.total_steps, ncols=0)
 
         for step, (batch, dataset_metrics) in zip(step_counter, dataset):
-            train_state, sharded_rng, metrics = sharded_train_step(
-                train_state, sharded_rng, batch
+            train_state, sharded_rng, metrics, hess_rng = sharded_train_step(
+                train_state, sharded_rng, batch, hess_rng
             )
 
             if step % FLAGS.log_freq == 0:
