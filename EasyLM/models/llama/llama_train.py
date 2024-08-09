@@ -136,7 +136,7 @@ def main(argv):
             )
         if FLAGS.calc_hessian:
             loss_out, grads, hvp, vector, update_precond = hessian_helper(
-                rng,
+                rng_generator(),
                 loss_and_accuracy,
                 train_state.params,
                 loss_fn_extra_args=(),
