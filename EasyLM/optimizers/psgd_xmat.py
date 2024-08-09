@@ -392,22 +392,22 @@ def hessian_helper(
         loss_out, grad = jax.value_and_grad(obj_fn, has_aux=has_aux)(params)
         return grad, loss_out
 
-    def hvp_fn(key, params):
+    def hvp_fn(params, key):
         vector = otu.tree_random_like(key, params, jax.random.normal)
         grad, hvp, loss_out = jax.jvp(grad_fn, (params,), (vector,), has_aux=True)
         return grad, loss_out, hvp, vector
 
-    def g_fn(key, params):
+    def g_fn(params, _):
         grad, loss_out = grad_fn(params)
         dummy_hvp = jax.tree.map(jnp.zeros_like, params)
         dummy_vector = jax.tree.map(jnp.zeros_like, params)
         return grad, loss_out, dummy_hvp, dummy_vector
 
     key, subkey = jax.random.split(key)
-    update_precond = jax.random.uniform(key) < preconditioner_update_probability
+    update_precond = jax.random.uniform(subkey) < preconditioner_update_probability
     key, subkey = jax.random.split(key)
     grad, loss_out, hvp, vector = jax.lax.cond(
-        update_precond, hvp_fn, g_fn, key, params
+        update_precond, hvp_fn, g_fn, params, subkey
     )
     return loss_out, grad, hvp, vector, update_precond
 
