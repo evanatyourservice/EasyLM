@@ -10,7 +10,7 @@ python -m EasyLM.models.llama.llama_train \
     --save_model_freq=1000000 \
     --save_milestone_freq=1000000 \
     --eval_steps 2 \
-    --calc_hessian=False \
+    --calc_hessian=True \
     --update_prob=0.1 \
     --load_llama_config='3b' \
     --update_llama_config='' \
