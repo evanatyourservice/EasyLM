@@ -145,6 +145,7 @@ class HuggingfaceDataset(object):
         config.always_start_with_bos = False
         config.batch_token_dtype = 'i4'
         config.cache_dir = '/dev/shm/hf/'
+        config.queue_size = 20
         return mlxu.update_config_dict(config, updates)
 
     def __init__(self, config, tokenizer, text_processor):
@@ -162,7 +163,7 @@ class HuggingfaceDataset(object):
         )
         # TODO (evanatyourservice)
         # self._dataset = DataLoader(self._dataset, num_workers=8)
-        self._queue = Queue(20)
+        self._queue = Queue(config.queue_size)
 
     def _iter(self):
         chunk_size = self.config.batch_size * self.config.seq_length
