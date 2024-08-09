@@ -252,6 +252,8 @@ def main(argv):
                 train_state, sharded_rng, batch
             )
 
+            print(dataset.queue_size)
+
             if step % FLAGS.log_freq == 0:
                 if FLAGS.eval_steps > 0:
                     eval_metric_list = []

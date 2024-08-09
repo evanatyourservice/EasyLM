@@ -162,6 +162,7 @@ class HuggingfaceDataset(object):
         )
         # TODO (evanatyourservice)
         # self._dataset = DataLoader(self._dataset, num_workers=8)
+        self._queue = Queue(20)
 
     def _iter(self):
         chunk_size = self.config.batch_size * self.config.seq_length
@@ -201,20 +202,16 @@ class HuggingfaceDataset(object):
                     loss_mask_buffer = loss_mask_buffer[chunk_size:]
 
     def __iter__(self):
-        n_queue = 20
-
         def _keep_full(queue):
             for item in self._iter():
                 queue.put(item)
 
-        queue = Queue(n_queue)
-        thread = Thread(target=_keep_full, args=(queue,))
+        thread = Thread(target=_keep_full, args=(self._queue,))
         thread.daemon = True
         thread.start()
 
         while True:
-            yield queue.get()
-            print('Queue size:', queue.qsize())
+            yield self._queue.get()
 
     def get_state_dict(self):
         return dict(config=self.config)
@@ -242,6 +239,10 @@ class HuggingfaceDataset(object):
     @property
     def vocab_size(self):
         return len(self._tokenizer)
+
+    @property
+    def queue_size(self):
+        return self._queue.qsize()
 
 
 class JsonDataset(object):
