@@ -33,13 +33,13 @@ The following options are supported for the optimizer module:
 
 
 ## AdamW Optimizer
-The AdamW optimizer implements AdamW with liear learning rate warmup and cosine
+The AdamW optimizer implements AdamW with linear learning rate warmup and linear
 learning rate decay. The following options are supported for the AdamW optimizer:
 * `init_lr`: the initial learning rate
 * `end_lr`: the final learning rate after decay
 * `lr`: the peak learning rate
 * `lr_warmup_steps`: the number of steps for linear learning rate warmup
-* `lr_decay_steps`: the number of steps for cosine learning rate decay
+* `lr_decay_steps`: the number of steps for linear learning rate decay
 * `b1`: the beta1 parameter for AdamW
 * `b2`: the beta2 parameter for AdamW
 * `clip_gradient`: the gradient clipping threshold

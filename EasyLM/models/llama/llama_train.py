@@ -12,12 +12,13 @@ import jax
 import jax.numpy as jnp
 from jax.experimental.pjit import pjit
 from jax.sharding import PartitionSpec as PS
+from flax import traverse_util
 from flax.training.train_state import TrainState
 from transformers import AutoTokenizer
 
 from EasyLM.data_adjusted_2 import DatasetFactory
 from EasyLM.checkpoint import StreamingCheckpointer
-from EasyLM.optimizers import OptimizerFactory
+from EasyLM.optimizers.optimizers import OptimizerFactory
 from EasyLM.jax_utils import (
     JaxRNG, JaxDistributedConfig, next_rng, match_partition_rules,
     cross_entropy_loss_and_accuracy, global_norm, get_float_dtype_by_name,
@@ -92,7 +93,17 @@ def main(argv):
         param_dtype=get_float_dtype_by_name(FLAGS.param_dtype),
     )
 
-    optimizer, optimizer_info = OptimizerFactory.get_optimizer(FLAGS.optimizer)
+    # only lets through kernel weights for weight decay
+    _kernels = traverse_util.ModelParamTraversal(lambda p, _: "kernel" in p)
+
+    def _kernel_mask(params):
+        all_false = jax.tree.map(lambda _: False, params)
+        out = _kernels.update(lambda _: True, all_false)
+        return out
+
+    optimizer, optimizer_info = OptimizerFactory.get_optimizer(
+        FLAGS.optimizer, weight_decay_mask=_kernel_mask
+    )
 
     def create_trainstate_from_params(params):
         return TrainState.create(params=params, tx=optimizer, apply_fn=None)

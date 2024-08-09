@@ -46,7 +46,7 @@ of the training script in this way:
 
 ``` python
 import mlxu
-from EasyLM.optimizer import OptimizerFactory
+from EasyLM.optimizer.optimizer import OptimizerFactory
 
 # Defining the command line flags, flag data type will be inferred from the default value
 FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
