@@ -16,7 +16,7 @@ python -m EasyLM.models.llama.llama_train \
     --load_checkpoint='' \
     --optimizer.type='adamw' \
     --optimizer.adamw_optimizer.weight_decay=0.03 \
-    --optimizer.adamw_optimizer.lr=3e-3 \
+    --optimizer.adamw_optimizer.lr=0.01 \
     --optimizer.adamw_optimizer.lr_warmup_steps=512 \
     --optimizer.adamw_optimizer.lr_decay_steps=20000 \
     --train_dataset.type='huggingface' \
