@@ -54,6 +54,7 @@ FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
     eval_steps=0,
     calc_hessian=False,
     update_prob=0.1,
+    l2_reg=0.0,
     tokenizer='openlm-research/open_llama_3b_v2',
     train_dataset=DatasetFactory.get_default_config(),
     eval_dataset=DatasetFactory.get_default_config(),
@@ -156,12 +157,21 @@ def main(argv):
             loss, acc = cross_entropy_loss_and_accuracy(
                 logits, batch['target_tokens'], batch['loss_masks']
             )
+            orig_loss = loss
 
             # palm style z-loss
             z_loss = 1e-4 * jnp.square(jax.scipy.special.logsumexp(logits, axis=-1)).mean()
             loss += z_loss
 
-            return loss, acc
+            # l2 regularization
+            if FLAGS.l2_reg > 0:
+                l2_loss = 0.5 * FLAGS.l2_reg * sum(
+                    jnp.sum(jnp.square(p))
+                    for p in jax.tree.leaves(params)
+                )
+                loss += l2_loss
+
+            return loss, (orig_loss, acc)
 
         rngs = rng_generator(LLaMAConfigurator.rng_keys())
         if FLAGS.calc_hessian:
@@ -174,7 +184,7 @@ def main(argv):
                 has_aux=True,
                 preconditioner_update_probability=FLAGS.update_prob,
             )
-            loss, accuracy = loss_out
+            _, (loss, accuracy) = loss_out
 
             updates, opt_state = optimizer.update(
                 grads, train_state.opt_state, train_state.params,
@@ -189,7 +199,7 @@ def main(argv):
             )
         else:
             grad_fn = jax.value_and_grad(loss_and_accuracy, has_aux=True)
-            (loss, accuracy), grads = grad_fn(train_state.params, rngs)
+            (_, (loss, accuracy)), grads = grad_fn(train_state.params, rngs)
             train_state = train_state.apply_gradients(grads=grads)
 
         metrics = dict(
