@@ -98,7 +98,7 @@ def main(argv):
 
     tokenizer = AutoTokenizer.from_pretrained(FLAGS.tokenizer)
     dataset = DatasetFactory.load_dataset(FLAGS.train_dataset, tokenizer)
-    dataset = prefetch(dataset, 25)
+    dataset_run = prefetch(dataset, 25)
 
     if FLAGS.load_dataset_state != '':
         dataset.load_state_dict(mlxu.load_pickle(FLAGS.load_dataset_state))
@@ -107,8 +107,8 @@ def main(argv):
         eval_dataset = DatasetFactory.load_dataset(
             FLAGS.eval_dataset, dataset.tokenizer
         )
-        eval_dataset = prefetch(eval_dataset, 5)
-        eval_iterator = iter(eval_dataset)
+        eval_dataset_run = prefetch(eval_dataset, 5)
+        eval_iterator = iter(eval_dataset_run)
 
     seq_length = dataset.seq_length
     llama_config = LLaMAConfigurator.finalize_config(FLAGS.llama)
@@ -305,7 +305,7 @@ def main(argv):
 
         step_counter = trange(start_step, FLAGS.total_steps, ncols=0)
 
-        for step, (batch, dataset_metrics) in zip(step_counter, dataset):
+        for step, (batch, dataset_metrics) in zip(step_counter, dataset_run):
             train_state, sharded_rng, metrics, hess_rng = sharded_train_step(
                 train_state, sharded_rng, batch, hess_rng
             )
