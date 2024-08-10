@@ -69,7 +69,6 @@ FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
 def _keep_full(dataset, queue: Queue):
     for item in dataset:
         queue.put(item)
-        print(f"queue size: {queue.qsize()}")
     queue.put(None)
 
 
@@ -80,6 +79,7 @@ def prefetch(dataset, n_prefetch):
     p.start()
 
     while True:
+        print(f"queue size: {queue.qsize()}")
         item = queue.get()
         if item is None:
             break
@@ -108,8 +108,8 @@ def main(argv):
         eval_dataset = DatasetFactory.load_dataset(
             FLAGS.eval_dataset, dataset.tokenizer
         )
-        eval_dataset_run = prefetch(eval_dataset, 5)
-        eval_iterator = iter(eval_dataset_run)
+        eval_dataset = prefetch(eval_dataset, 5)
+        eval_iterator = iter(eval_dataset)
 
     seq_length = dataset.seq_length
     llama_config = LLaMAConfigurator.finalize_config(FLAGS.llama)
@@ -157,6 +157,11 @@ def main(argv):
             loss, acc = cross_entropy_loss_and_accuracy(
                 logits, batch['target_tokens'], batch['loss_masks']
             )
+
+            # palm style z-loss
+            z_loss = 1e-4 * jnp.square(jax.scipy.special.logsumexp(logits, axis=-1)).mean()
+            loss += z_loss
+
             return loss, acc
 
         rngs = rng_generator(LLaMAConfigurator.rng_keys())
@@ -227,7 +232,7 @@ def main(argv):
         LLaMAConfigurator.get_partition_rules(), train_state_shapes
     )
 
-    pprint.pprint(train_state_partition, indent=2, width=120, compact=True)
+    pprint.pprint(train_state_partition, width=120)
 
     shard_fns, gather_fns = make_shard_and_gather_fns(
         train_state_partition, train_state_shapes
