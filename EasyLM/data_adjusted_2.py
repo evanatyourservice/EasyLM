@@ -2,10 +2,7 @@ import time
 from functools import partial
 import json
 import base64
-from multiprocessing import Pool
-
-from threading import Thread
-from queue import Queue
+from multiprocessing import Pool, Process, Queue
 
 import jax
 import mlxu
@@ -144,7 +141,7 @@ class HuggingfaceDataset(object):
         config.batch_size = 128
         config.always_start_with_bos = False
         config.batch_token_dtype = 'i4'
-        config.cache_dir = '/dev/shm/hf/'
+        config.cache_dir = '/dev/shm/hf2/'
         config.queue_size = 20
         return mlxu.update_config_dict(config, updates)
 
@@ -203,13 +200,13 @@ class HuggingfaceDataset(object):
                     loss_mask_buffer = loss_mask_buffer[chunk_size:]
 
     def __iter__(self):
-        def _keep_full(queue):
+        def _keep_full(queue: Queue):
             for item in self._iter():
                 queue.put(item)
 
-        thread = Thread(target=_keep_full, args=(self._queue,))
-        thread.daemon = True
-        thread.start()
+        p = Process(target=_keep_full, args=(self._queue,))
+        p.daemon = True
+        p.start()
 
         while True:
             yield self._queue.get()

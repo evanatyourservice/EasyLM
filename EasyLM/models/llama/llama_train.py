@@ -1,11 +1,6 @@
-import filelock
-import optax
-
-filelock.FileLock = filelock.SoftFileLock
-
 import pprint
 from functools import partial
-
+import multiprocessing as mp
 from tqdm import tqdm, trange
 import numpy as np
 import mlxu
@@ -16,6 +11,7 @@ from jax.experimental.pjit import pjit
 from jax.sharding import PartitionSpec as PS
 from flax import traverse_util
 from flax.training.train_state import TrainState
+import optax
 from transformers import AutoTokenizer
 
 from EasyLM.data_adjusted_2 import DatasetFactory
@@ -30,9 +26,12 @@ from EasyLM.jax_utils import (
 from EasyLM.models.llama.llama_model import (
     LLaMAConfigurator, FlaxLLaMAForCausalLMModule
 )
-from EasyLM.optimizers.psgd_xmat import hessian_helper
+from EasyLM.optimizers.utils import hessian_helper
 
 import datasets.config as ds_config
+
+
+mp.set_start_method("spawn", force=True)  # jax-friendly
 
 ds_config.STREAMING_READ_MAX_RETRIES = 86400 // 5  # Retry for 24 hours.
 ds_config.STREAMING_READ_RETRY_INTERVAL = 5

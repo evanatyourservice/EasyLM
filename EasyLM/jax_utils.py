@@ -364,11 +364,17 @@ def named_tree_map(f, tree, *rest, is_leaf=None, sep=None):
     )
 
 
+def partition_is_leaf(x):
+    return isinstance(x, (jax.Array, jax.ShapeDtypeStruct)) or isinstance(x, list)
+
+
 def match_partition_rules(rules, params):
     """ Returns a pytree of PartitionSpec according to rules. Supports handling
         Flax TrainState and Optax optimizer state.
     """
     def get_partition_spec(name, leaf):
+        if isinstance(leaf, list):
+            return jax.tree.map(lambda: PS(), leaf)
         if len(leaf.shape) == 0 or np.prod(leaf.shape) == 1:
             """ Don't partition scalar values. """
             return PS()
@@ -376,7 +382,9 @@ def match_partition_rules(rules, params):
             if re.search(rule, name) is not None:
                 return ps
         raise ValueError(f'Partition rule not found for param: {name}')
-    return named_tree_map(get_partition_spec, params, sep='/')
+    return named_tree_map(
+        get_partition_spec, params, is_leaf=partition_is_leaf, sep='/'
+    )
 
 
 def get_weight_decay_mask(exclusions):
