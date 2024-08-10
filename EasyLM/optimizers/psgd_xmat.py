@@ -170,7 +170,7 @@ def scale_by_xmat(
             key, subkey = jax.random.split(key)
             # TODO sharding
             vector = otu.tree_random_like(
-                subkey, updates, partial(jax.random.normal, dtype=precond_dtype)
+                subkey, updates, partial(jax.random.rademacher, dtype=precond_dtype)
             )
             # use grads as Hvp
             Hvp = updates
@@ -393,7 +393,9 @@ def hessian_helper(
         return grad, loss_out
 
     def hvp_fn(params, key):
-        vector = otu.tree_random_like(key, params, jax.random.normal)
+        vector = otu.tree_random_like(
+            key, params, partial(jax.random.rademacher, dtype=jnp.float32)
+        )
         grad, hvp, loss_out = jax.jvp(grad_fn, (params,), (vector,), has_aux=True)
         return grad, loss_out, hvp, vector
 
