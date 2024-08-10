@@ -374,7 +374,7 @@ def match_partition_rules(rules, params):
     """
     def get_partition_spec(name, leaf):
         if isinstance(leaf, list):
-            return jax.tree.map(lambda: PS(), leaf)
+            return jax.tree.map(lambda _: PS(), leaf)
         if len(leaf.shape) == 0 or np.prod(leaf.shape) == 1:
             """ Don't partition scalar values. """
             return PS()
