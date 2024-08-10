@@ -124,16 +124,14 @@ class PSGDOptimizerFactory(object):
                 preconditioner_update_probability=config.precond_update_probability,
                 b1=config.b1,
                 nesterov=config.nesterov,
-                gradient_clip=None,
+                gradient_clip=config.clip_gradient,
+                max_size_triangular=config.max_size_triangular,
+                max_skew_triangular=config.max_skew_triangular,
                 precond_lr=config.precond_lr,
                 precond_init_scale=(
                     config.precond_init_scale if config.precond_init_scale > 0.0 else None
                 ),
                 mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
-                precond_dtype=jnp.bfloat16 if config.bf16_preconditioner else jnp.float32,
-                normalize=config.normalize,
-                adaptive=config.adaptive,
-                b2=config.b2,
             ),
             transform.add_decayed_weights(
                 config.weight_decay, mask=weight_decay_mask
