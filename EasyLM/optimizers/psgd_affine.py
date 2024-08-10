@@ -10,7 +10,7 @@ from optax._src.numerics import safe_int32_increment
 from optax._src.utils import canonicalize_dtype
 from optax._src.combine import chain
 
-from psgd_jax.utils import add_eps, apply_momentum
+from EasyLM.optimizers.utils import add_eps, apply_momentum
 
 
 class PSGDAffineState(NamedTuple):
