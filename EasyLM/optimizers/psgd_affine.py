@@ -142,6 +142,7 @@ def scale_by_affine(
                         precond_lr_in,
                         step_normalizer_order,
                         precision,
+                        count_inc,
                     )
                     for (k, Qlr, v, h) in zip(
                         keys, Qs, jax.tree.leaves(vs), jax.tree.leaves(Hvs)
@@ -176,6 +177,7 @@ def scale_by_affine(
                         precond_lr_in,
                         step_normalizer_order,
                         precision,
+                        count_inc,
                     )
                     for (k, Qlr, h) in zip(keys, Qs, jax.tree.leaves(Hvs))
                 ]
@@ -437,8 +439,12 @@ def _solve_triangular(a, b, upper, left=True):
     return jax.lax.linalg.triangular_solve(a, b, left_side=left, lower=not upper)
 
 
+def lr_decay(step):
+    return jnp.exp(-0.001 * step)
+
+
 def _update_precond_affine_math_(
-    key, Ql, Qr, dX, dG, precond_lr, step_normalizer, precision
+    key, Ql, Qr, dX, dG, precond_lr, step_normalizer, precision, step
 ):
     with jax.default_matmul_precision(precision):
         if Ql.ndim == 2:
@@ -462,6 +468,10 @@ def _update_precond_affine_math_(
                     step1 = precond_lr / add_eps(_norm_lower_bound(grad1))
                     step2 = precond_lr / add_eps(_norm_lower_bound(grad2))
 
+                # lr
+                step1 *= lr_decay(step)
+                step2 *= lr_decay(step)
+
                 Ql -= step1 * grad1 @ Ql
                 Qr -= step2 * grad2 @ Qr
             else:  # Ql.dim()=2 and Qr.dim()=1:
@@ -481,6 +491,10 @@ def _update_precond_affine_math_(
                 else:
                     step1 = precond_lr / add_eps(_norm_lower_bound(grad1))
                     step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
+
+                # lr
+                step1 *= lr_decay(step)
+                step2 *= lr_decay(step)
 
                 Ql -= step1 * grad1 @ Ql
                 Qr -= step2 * grad2 * Qr
@@ -505,6 +519,10 @@ def _update_precond_affine_math_(
                     step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                     step2 = precond_lr / add_eps(_norm_lower_bound(grad2))
 
+                # lr
+                step1 *= lr_decay(step)
+                step2 *= lr_decay(step)
+
                 Ql -= step1 * grad1 * Ql
                 Qr -= step2 * grad2 @ Qr
             else:  # Ql.dim()=1 and Qr.dim()=1:
@@ -527,6 +545,10 @@ def _update_precond_affine_math_(
                     step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                     step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
 
+                # lr
+                step1 *= lr_decay(step)
+                step2 *= lr_decay(step)
+
                 Ql -= step1 * grad1 * Ql
                 Qr -= step2 * grad2 * Qr
 
@@ -548,7 +570,7 @@ def _update_precond_affine_math_(
 
 
 def _update_precond_affine_dropv_math(
-    key, Ql, Qr, dG, precond_lr, step_normalizer, precision
+    key, Ql, Qr, dG, precond_lr, step_normalizer, precision, step
 ):
     with jax.default_matmul_precision(precision):
 
@@ -588,8 +610,12 @@ def _update_precond_affine_dropv_math(
                 step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                 step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
 
-            Ql = Ql - step1 * grad1 * Ql
-            Qr = Qr - step2 * grad2 * Qr
+            # lr
+            step1 *= lr_decay(step)
+            step2 *= lr_decay(step)
+
+            Ql -= step1 * grad1 * Ql
+            Qr -= step2 * grad2 * Qr
 
             key, subkey = jax.random.split(key)
             Ql, Qr = balance(subkey, Ql, Qr)
@@ -614,6 +640,10 @@ def _update_precond_affine_dropv_math(
             else:
                 step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                 step2 = precond_lr / add_eps(_norm_lower_bound(grad2))
+
+            # lr
+            step1 *= lr_decay(step)
+            step2 *= lr_decay(step)
 
             Ql -= step1 * grad1 * Ql
             Qr -= step2 * grad2 @ Qr
@@ -642,6 +672,10 @@ def _update_precond_affine_dropv_math(
                 step1 = precond_lr / add_eps(_norm_lower_bound(grad1))
                 step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
 
+            # lr
+            step1 *= lr_decay(step)
+            step2 *= lr_decay(step)
+
             Ql -= step1 * grad1 @ Ql
             Qr -= step2 * grad2 * Qr
 
@@ -657,7 +691,7 @@ def _update_precond_affine_dropv_math(
             v = otu.tree_random_like(subkey, dG, jax.random.normal)
             key, subkey = jax.random.split(key)
             return _update_precond_affine_math_(
-                subkey, Ql, Qr, v, dG, precond_lr, step_normalizer, precision
+                subkey, Ql, Qr, v, dG, precond_lr, step_normalizer, precision, step
             )
 
         return [Ql, Qr]

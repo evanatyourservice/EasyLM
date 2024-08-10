@@ -19,13 +19,21 @@ from EasyLM.data_adjusted_2 import DatasetFactory
 from EasyLM.checkpoint import StreamingCheckpointer
 from EasyLM.optimizers.optimizers import OptimizerFactory
 from EasyLM.jax_utils import (
-    JaxRNG, JaxDistributedConfig, next_rng, match_partition_rules,
-    cross_entropy_loss_and_accuracy, global_norm, get_float_dtype_by_name,
-    set_random_seed, average_metrics, make_shard_and_gather_fns,
+    JaxRNG,
+    JaxDistributedConfig,
+    next_rng,
+    match_partition_rules,
+    cross_entropy_loss_and_accuracy,
+    global_norm,
+    get_float_dtype_by_name,
+    set_random_seed,
+    average_metrics,
+    make_shard_and_gather_fns,
     with_sharding_constraint,
 )
 from EasyLM.models.llama.llama_model import (
-    LLaMAConfigurator, FlaxLLaMAForCausalLMModule
+    LLaMAConfigurator,
+    FlaxLLaMAForCausalLMModule,
 )
 from EasyLM.optimizers.utils import hessian_helper
 
@@ -40,14 +48,14 @@ ds_config.STREAMING_READ_RETRY_INTERVAL = 5
 
 FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
     seed=42,
-    mesh_dim='1,-1,1',
-    dtype='fp32',
-    param_dtype='fp32',
+    mesh_dim="1,-1,1",
+    dtype="fp32",
+    param_dtype="fp32",
     total_steps=10000,
-    load_llama_config='',
-    update_llama_config='',
-    load_checkpoint='',
-    load_dataset_state='',
+    load_llama_config="",
+    update_llama_config="",
+    load_checkpoint="",
+    load_dataset_state="",
     log_freq=50,
     save_model_freq=0,
     save_milestone_freq=0,
@@ -55,7 +63,7 @@ FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
     calc_hessian=False,
     update_prob=0.1,
     l2_reg=0.0,
-    tokenizer='openlm-research/open_llama_3b_v2',
+    tokenizer="openlm-research/open_llama_3b_v2",
     train_dataset=DatasetFactory.get_default_config(),
     eval_dataset=DatasetFactory.get_default_config(),
     optimizer=OptimizerFactory.get_default_config(),
@@ -101,7 +109,7 @@ def main(argv):
     dataset = DatasetFactory.load_dataset(FLAGS.train_dataset, tokenizer)
     dataset_run = prefetch(dataset, FLAGS.log_freq + 2)
 
-    if FLAGS.load_dataset_state != '':
+    if FLAGS.load_dataset_state != "":
         dataset.load_state_dict(mlxu.load_pickle(FLAGS.load_dataset_state))
 
     if FLAGS.eval_steps > 0:
@@ -151,25 +159,28 @@ def main(argv):
 
         def loss_and_accuracy(params, rngs):
             logits = model.apply(
-                params, batch['input_tokens'], deterministic=False,
+                params,
+                batch["input_tokens"],
+                deterministic=False,
                 rngs=rngs,
             ).logits
             loss, acc = cross_entropy_loss_and_accuracy(
-                logits, batch['target_tokens'], batch['loss_masks']
+                logits, batch["target_tokens"], batch["loss_masks"]
             )
             orig_loss = loss
 
             # palm style z-loss
-            z_loss = 1e-4 * jnp.square(jax.scipy.special.logsumexp(logits, axis=-1)).mean()
+            z_loss = (
+                1e-4 * jnp.square(jax.scipy.special.logsumexp(logits, axis=-1)).mean()
+            )
             loss += z_loss
 
             # l2 regularization
             if FLAGS.l2_reg > 0:
-                l2_loss = 0.5 * FLAGS.l2_reg * sum(
-                    jnp.sum(jnp.square(p))
-                    for p in jax.tree.leaves(params)
-                )
-                loss += l2_loss
+                l2_loss = jnp.array(
+                    [jnp.mean(jnp.square(p)) for p in jax.tree.leaves(params)]
+                ).mean()
+                loss += FLAGS.l2_reg * l2_loss
 
             return loss, (orig_loss, acc)
 
@@ -187,8 +198,12 @@ def main(argv):
             _, (loss, accuracy) = loss_out
 
             updates, opt_state = optimizer.update(
-                grads, train_state.opt_state, train_state.params,
-                Hvp=hvp, vector=vector, update_preconditioner=update_precond,
+                grads,
+                train_state.opt_state,
+                train_state.params,
+                Hvp=hvp,
+                vector=vector,
+                update_preconditioner=update_precond,
             )
             new_params = optax.apply_updates(train_state.params, updates)
 
@@ -205,7 +220,7 @@ def main(argv):
         metrics = dict(
             loss=loss,
             accuracy=accuracy,
-            learning_rate=optimizer_info['learning_rate_schedule'](train_state.step),
+            learning_rate=optimizer_info["learning_rate_schedule"](train_state.step),
             gradient_norm=global_norm(grads),
             param_norm=global_norm(train_state.params),
         )
@@ -215,11 +230,13 @@ def main(argv):
         rng_generator = JaxRNG(rng)
         # batch = with_sharding_constraint(batch, PS(('dp', 'fsdp')))
         logits = model.apply(
-            train_state.params, batch['input_tokens'], deterministic=True,
+            train_state.params,
+            batch["input_tokens"],
+            deterministic=True,
             rngs=rng_generator(LLaMAConfigurator.rng_keys()),
         ).logits
         loss, accuracy = cross_entropy_loss_and_accuracy(
-            logits, batch['target_tokens'], batch['loss_masks']
+            logits, batch["target_tokens"], batch["loss_masks"]
         )
         metrics = dict(
             eval_loss=loss,
@@ -230,10 +247,7 @@ def main(argv):
     train_state_shapes = jax.eval_shape(init_fn, next_rng())
 
     total_params = sum(
-        [
-            np.prod(x.shape)
-            for x in jax.tree.leaves(train_state_shapes.params)
-        ]
+        [np.prod(x.shape) for x in jax.tree.leaves(train_state_shapes.params)]
     )
     print(f"Total number of parameters: {total_params}")
 
@@ -247,33 +261,32 @@ def main(argv):
         train_state_partition, train_state_shapes
     )
     checkpointer = StreamingCheckpointer(
-        FLAGS.checkpointer, logger.output_dir,
+        FLAGS.checkpointer,
+        logger.output_dir,
         enable=jax.process_index() == 0,
     )
 
     sharded_init_fn = pjit(
-        init_fn,
-        in_shardings=PS(),
-        out_shardings=train_state_partition
+        init_fn, in_shardings=PS(), out_shardings=train_state_partition
     )
 
     sharded_create_trainstate_from_params = pjit(
         create_trainstate_from_params,
-        in_shardings=(train_state_partition.params, ),
+        in_shardings=(train_state_partition.params,),
         out_shardings=train_state_partition,
-        donate_argnums=(0, ),
+        donate_argnums=(0,),
     )
 
     sharded_train_step = pjit(
         train_step,
-        in_shardings=(train_state_partition, PS(), PS(('dp', 'fsdp')), PS()),
+        in_shardings=(train_state_partition, PS(), PS(("dp", "fsdp")), PS()),
         out_shardings=(train_state_partition, PS(), PS(), PS()),
         donate_argnums=(0, 1),
     )
 
     sharded_eval_step = pjit(
         eval_step,
-        in_shardings=(train_state_partition, PS(), PS(('dp', 'fsdp'))),
+        in_shardings=(train_state_partition, PS(), PS(("dp", "fsdp"))),
         out_shardings=(PS(), PS()),
         donate_argnums=(1,),
     )
@@ -297,7 +310,7 @@ def main(argv):
     mesh = LLaMAConfigurator.get_jax_mesh(FLAGS.mesh_dim)
     with mesh:
         train_state, restored_params = None, None
-        if FLAGS.load_checkpoint != '':
+        if FLAGS.load_checkpoint != "":
             train_state, restored_params = checkpointer.load_trainstate_checkpoint(
                 FLAGS.load_checkpoint, train_state_shapes, shard_fns
             )
@@ -343,7 +356,10 @@ def main(argv):
                 logger.log(log_metrics)
                 tqdm.write("\n" + pprint.pformat(log_metrics) + "\n")
 
-            if FLAGS.save_milestone_freq > 0 and (step + 1) % FLAGS.save_milestone_freq == 0:
+            if (
+                FLAGS.save_milestone_freq > 0
+                and (step + 1) % FLAGS.save_milestone_freq == 0
+            ):
                 save_checkpoint(train_state, milestone=True)
             elif FLAGS.save_model_freq > 0 and (step + 1) % FLAGS.save_model_freq == 0:
                 save_checkpoint(train_state)
