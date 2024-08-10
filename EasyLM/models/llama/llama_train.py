@@ -203,6 +203,8 @@ def main(argv):
         LLaMAConfigurator.get_partition_rules(), train_state_shapes
     )
 
+    pprint.pprint(train_state_partition, indent=2, width=120, compact=True)
+
     shard_fns, gather_fns = make_shard_and_gather_fns(
         train_state_partition, train_state_shapes
     )
