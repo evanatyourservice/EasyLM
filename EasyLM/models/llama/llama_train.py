@@ -69,6 +69,7 @@ FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
 def _keep_full(dataset, queue: Queue):
     for item in dataset:
         queue.put(item)
+        print(f"queue size: {queue.qsize()}")
     queue.put(None)
 
 
