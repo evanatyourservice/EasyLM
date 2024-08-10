@@ -2,7 +2,7 @@ import time
 from functools import partial
 import json
 import base64
-from multiprocessing import Pool, Process, Queue
+from multiprocessing import Pool
 
 import jax
 import mlxu
@@ -142,7 +142,6 @@ class HuggingfaceDataset(object):
         config.always_start_with_bos = False
         config.batch_token_dtype = 'i4'
         config.cache_dir = '/dev/shm/hf2/'
-        config.queue_size = 20
         return mlxu.update_config_dict(config, updates)
 
     def __init__(self, config, tokenizer, text_processor):
@@ -160,9 +159,8 @@ class HuggingfaceDataset(object):
         )
         # TODO (evanatyourservice)
         # self._dataset = DataLoader(self._dataset, num_workers=8)
-        self._queue = Queue(config.queue_size)
 
-    def _iter(self):
+    def __iter__(self):
         chunk_size = self.config.batch_size * self.config.seq_length
         total_tokens = 0
         while True:
@@ -199,18 +197,6 @@ class HuggingfaceDataset(object):
                     token_buffer = token_buffer[chunk_size:]
                     loss_mask_buffer = loss_mask_buffer[chunk_size:]
 
-    def __iter__(self):
-        def _keep_full(queue: Queue):
-            for item in self._iter():
-                queue.put(item)
-
-        p = Process(target=_keep_full, args=(self._queue,))
-        p.daemon = True
-        p.start()
-
-        while True:
-            yield self._queue.get()
-
     def get_state_dict(self):
         return dict(config=self.config)
 
@@ -237,10 +223,6 @@ class HuggingfaceDataset(object):
     @property
     def vocab_size(self):
         return len(self._tokenizer)
-
-    @property
-    def queue_size(self):
-        return self._queue.qsize()
 
 
 class JsonDataset(object):

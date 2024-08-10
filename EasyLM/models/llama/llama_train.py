@@ -1,6 +1,7 @@
 import pprint
 from functools import partial
 import multiprocessing as mp
+from multiprocessing import Queue, Process
 from tqdm import tqdm, trange
 import numpy as np
 import mlxu
@@ -65,6 +66,25 @@ FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
 )
 
 
+def _keep_full(dataset, queue: Queue):
+    for item in dataset:
+        queue.put(item)
+    queue.put(None)
+
+
+def prefetch(dataset, n_prefetch):
+    queue = Queue(maxsize=n_prefetch)
+    p = Process(target=_keep_full, args=(dataset, queue))
+    p.daemon = True
+    p.start()
+
+    while True:
+        item = queue.get()
+        if item is None:
+            break
+        yield item
+
+
 def main(argv):
     JaxDistributedConfig.initialize(FLAGS.jax_distributed)
     variant = mlxu.get_user_flags(FLAGS, FLAGS_DEF)
@@ -78,6 +98,7 @@ def main(argv):
 
     tokenizer = AutoTokenizer.from_pretrained(FLAGS.tokenizer)
     dataset = DatasetFactory.load_dataset(FLAGS.train_dataset, tokenizer)
+    dataset = prefetch(dataset, 25)
 
     if FLAGS.load_dataset_state != '':
         dataset.load_state_dict(mlxu.load_pickle(FLAGS.load_dataset_state))
@@ -86,6 +107,7 @@ def main(argv):
         eval_dataset = DatasetFactory.load_dataset(
             FLAGS.eval_dataset, dataset.tokenizer
         )
+        eval_dataset = prefetch(eval_dataset, 5)
         eval_iterator = iter(eval_dataset)
 
     seq_length = dataset.seq_length
@@ -131,9 +153,10 @@ def main(argv):
                 params, batch['input_tokens'], deterministic=False,
                 rngs=rngs,
             ).logits
-            return cross_entropy_loss_and_accuracy(
+            loss, acc = cross_entropy_loss_and_accuracy(
                 logits, batch['target_tokens'], batch['loss_masks']
             )
+            return loss, acc
 
         rngs = rng_generator(LLaMAConfigurator.rng_keys())
         if FLAGS.calc_hessian:

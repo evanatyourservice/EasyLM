@@ -27,7 +27,6 @@ python -m EasyLM.models.llama.llama_train \
     --train_dataset.huggingface_dataset.batch_size=32 \
     --train_dataset.huggingface_dataset.split='train' \
     --train_dataset.huggingface_dataset.name='sample-100BT' \
-    --train_dataset.huggingface_dataset.queue_size=25 \
     --eval_dataset.type='huggingface' \
     --eval_dataset.text_processor.fields='text' \
     --eval_dataset.huggingface_dataset.path='HuggingFaceFW/fineweb-edu' \
@@ -36,7 +35,6 @@ python -m EasyLM.models.llama.llama_train \
     --eval_dataset.huggingface_dataset.batch_size=32 \
     --eval_dataset.huggingface_dataset.split='train' \
     --eval_dataset.huggingface_dataset.name='sample-10BT' \
-    --eval_dataset.huggingface_dataset.queue_size=4 \
     --checkpointer.save_optimizer_state=True \
     --logger.online=True \
     --logger.prefix='EasyLM' \

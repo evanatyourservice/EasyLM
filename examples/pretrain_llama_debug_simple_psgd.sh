@@ -21,7 +21,7 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.lr=3e-3 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
     --optimizer.psgd_optimizer.lr_decay_steps=25000 \
-    --optimizer.psgd_optimizer.b2=0.99 \
+    --optimizer.psgd_optimizer.b2=0.95 \
     --optimizer.psgd_optimizer.nesterov=True \
     --optimizer.psgd_optimizer.precond_update_probability=0.1 \
     --optimizer.psgd_optimizer.precond_lr=0.01 \
@@ -38,7 +38,6 @@ python -m EasyLM.models.llama.llama_train \
     --train_dataset.huggingface_dataset.batch_size=32 \
     --train_dataset.huggingface_dataset.split='train' \
     --train_dataset.huggingface_dataset.name='sample-100BT' \
-    --train_dataset.huggingface_dataset.queue_size=25 \
     --eval_dataset.type='huggingface' \
     --eval_dataset.text_processor.fields='text' \
     --eval_dataset.huggingface_dataset.path='HuggingFaceFW/fineweb-edu' \
@@ -47,7 +46,6 @@ python -m EasyLM.models.llama.llama_train \
     --eval_dataset.huggingface_dataset.batch_size=32 \
     --eval_dataset.huggingface_dataset.split='train' \
     --eval_dataset.huggingface_dataset.name='sample-10BT' \
-    --eval_dataset.huggingface_dataset.queue_size=4 \
     --checkpointer.save_optimizer_state=True \
     --logger.online=True \
     --logger.prefix='EasyLM' \
