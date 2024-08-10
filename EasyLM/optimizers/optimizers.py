@@ -82,11 +82,13 @@ class PSGDOptimizerFactory(object):
         config.b1 = 0.9
         config.b2 = 0.95
         config.clip_gradient = 1.0
-        config.weight_decay = 0.01
+        config.weight_decay = 0.03
         config.nesterov = True
         config.precond_update_probability = 0.1
         config.precond_lr = 0.01
         config.precond_init_scale = 0.0
+        config.max_size_triangular = 256
+        config.max_skew_triangular = 16
         config.normalize = True
         config.adaptive = True
         config.bf16_momentum = True
@@ -118,7 +120,7 @@ class PSGDOptimizerFactory(object):
         )
 
         optimizer = optax.chain(
-            scale_by_xmat(
+            scale_by_affine(
                 preconditioner_update_probability=config.precond_update_probability,
                 b1=config.b1,
                 nesterov=config.nesterov,

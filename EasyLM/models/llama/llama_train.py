@@ -79,7 +79,6 @@ def prefetch(dataset, n_prefetch):
     p.start()
 
     while True:
-        print(f"queue size: {queue.qsize()}")
         item = queue.get()
         if item is None:
             break
@@ -99,7 +98,7 @@ def main(argv):
 
     tokenizer = AutoTokenizer.from_pretrained(FLAGS.tokenizer)
     dataset = DatasetFactory.load_dataset(FLAGS.train_dataset, tokenizer)
-    dataset_run = prefetch(dataset, 25)
+    dataset_run = prefetch(dataset, FLAGS.log_freq + 2)
 
     if FLAGS.load_dataset_state != '':
         dataset.load_state_dict(mlxu.load_pickle(FLAGS.load_dataset_state))
@@ -108,7 +107,7 @@ def main(argv):
         eval_dataset = DatasetFactory.load_dataset(
             FLAGS.eval_dataset, dataset.tokenizer
         )
-        eval_dataset = prefetch(eval_dataset, 5)
+        eval_dataset = prefetch(eval_dataset, FLAGS.eval_steps + 1)
         eval_iterator = iter(eval_dataset)
 
     seq_length = dataset.seq_length
