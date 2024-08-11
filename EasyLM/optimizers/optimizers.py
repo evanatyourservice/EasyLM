@@ -122,9 +122,9 @@ class PSGDOptimizerFactory(object):
             decay_rate=0.01,
         )
         precond_lr_schedule = optax.warmup_exponential_decay_schedule(
-            init_value=1e-6,
+            init_value=0.0001,
             peak_value=config.precond_lr,
-            warmup_steps=20,
+            warmup_steps=10,
             transition_steps=10_000,
             decay_rate=0.01,
         )
