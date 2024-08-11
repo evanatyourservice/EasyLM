@@ -17,7 +17,7 @@ from optax._src import transform
 
 from EasyLM.jax_utils import float_to_dtype
 from EasyLM.optimizers.psgd_xmat import scale_by_xmat
-from EasyLM.optimizers.psgd_affine import scale_by_affine
+from EasyLM.optimizers.psgd_affine import affine
 
 
 class OptimizerFactory(object):
@@ -87,8 +87,8 @@ class PSGDOptimizerFactory(object):
         config.precond_update_probability = 0.1
         config.precond_lr = 0.01
         config.precond_init_scale = 0.0
-        config.max_size_triangular = 256
-        config.max_skew_triangular = 16
+        config.max_size_triangular = 32
+        config.max_skew_triangular = 4096
         config.normalize = True
         config.adaptive = True
         config.bf16_momentum = True
@@ -126,32 +126,24 @@ class PSGDOptimizerFactory(object):
             learning_rate_schedule=learning_rate_schedule,
         )
 
-        chain = [
-            scale_by_affine(
-                preconditioner_update_probability=config.precond_update_probability,
-                b1=config.b1,
-                nesterov=config.nesterov,
-                gradient_clip=config.clip_gradient,
-                max_size_triangular=config.max_size_triangular,
-                max_skew_triangular=config.max_skew_triangular,
-                precond_lr=config.precond_lr,
-                precond_init_scale=(
-                    config.precond_init_scale
-                    if config.precond_init_scale > 0.0
-                    else None
-                ),
-                mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
-            )
-        ]
-        if config.weight_decay > 0.0:
-            chain.append(
-                transform.add_decayed_weights(
-                    config.weight_decay, mask=weight_decay_mask
-                )
-            )
-        chain.append(transform.scale_by_learning_rate(learning_rate_schedule))
-
-        optimizer = optax.chain(*chain)
+        optimizer = affine(
+            learning_rate=learning_rate_schedule,
+            preconditioner_update_probability=config.precond_update_probability,
+            b1=config.b1,
+            nesterov=config.nesterov,
+            gradient_clip=config.clip_gradient,
+            weight_decay=config.weight_decay,
+            mask=weight_decay_mask,
+            max_size_triangular=config.max_size_triangular,
+            max_skew_triangular=config.max_skew_triangular,
+            precond_lr=config.precond_lr,
+            precond_init_scale=(
+                config.precond_init_scale
+                if config.precond_init_scale > 0.0
+                else None
+            ),
+            mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
+        )
 
         return optimizer, optimizer_info
 

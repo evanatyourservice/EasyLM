@@ -251,6 +251,11 @@ def main(argv):
     )
     print(f"Total number of parameters: {total_params}")
 
+    print("Model shapes:")
+    pprint.pprint(
+        jax.tree.map(lambda x: x.shape, train_state_shapes), width=120, compact=True
+    )
+
     train_state_partition = match_partition_rules(
         LLaMAConfigurator.get_partition_rules(), train_state_shapes
     )
