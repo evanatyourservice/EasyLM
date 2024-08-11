@@ -13,6 +13,7 @@ from optax._src.utils import canonicalize_dtype
 from optax._src.combine import chain
 
 from EasyLM.optimizers.utils import add_eps, apply_momentum
+from EasyLM.optimizers.schedule_free import schedule_free, schedule_free_eval_params
 
 
 class PSGDXMatState(NamedTuple):
@@ -327,6 +328,14 @@ def _update_precond_Xmat_math_(a, b, v, h, precond_lr, step_normalizer, precisio
         q, r = jnp.divmod(len(nablaB), 2)
         nablaB = jnp.where(r == 1, nablaB.at[q].set(0), nablaB)
 
+        a_update = nablaA * a + nablaB * bflip
+        b_update = nablaA * b + nablaB * aflip
+
+        # weight decay
+        a_update += 1e-4 * a
+        b_update += 1e-4 * b
+
+        # lr
         if step_normalizer == "2nd":
             mu = precond_lr / add_eps(jnp.max(u + v))
         else:
@@ -334,10 +343,10 @@ def _update_precond_Xmat_math_(a, b, v, h, precond_lr, step_normalizer, precisio
                 jnp.maximum(jnp.max(jnp.abs(nablaA)), jnp.max(jnp.abs(nablaB)))
             )
 
-        a -= mu * (nablaA * a + nablaB * bflip)
-        b -= mu * (nablaA * b + nablaB * aflip)
+        a_update *= -mu
+        b_update *= -mu
 
-        return a, b
+        return a_update, b_update
 
 
 def _precond_grad_Xmat_math(a, b, g):

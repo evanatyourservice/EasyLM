@@ -440,7 +440,7 @@ def _solve_triangular(a, b, upper, left=True):
 
 
 def lr_decay(step):
-    return jnp.maximum(jnp.exp(-0.001 * step), 0.0001)
+    return jnp.exp(-0.0005 * step)
 
 
 def _update_precond_affine_math_(
