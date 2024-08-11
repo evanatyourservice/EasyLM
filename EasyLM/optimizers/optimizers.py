@@ -17,7 +17,7 @@ from optax._src import transform
 
 from EasyLM.jax_utils import float_to_dtype
 from EasyLM.optimizers.psgd_xmat import scale_by_xmat
-from EasyLM.optimizers.psgd_affine import affine
+from EasyLM.optimizers.psgd_affine_sf import affine
 
 
 class OptimizerFactory(object):
