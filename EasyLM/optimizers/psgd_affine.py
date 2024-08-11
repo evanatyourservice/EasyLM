@@ -439,10 +439,6 @@ def _solve_triangular(a, b, upper, left=True):
     return jax.lax.linalg.triangular_solve(a, b, left_side=left, lower=not upper)
 
 
-def lr_decay(step):
-    return jnp.exp(-0.0005 * step)
-
-
 def _update_precond_affine_math_(
     key, Ql, Qr, dX, dG, precond_lr, step_normalizer, precision, step
 ):
@@ -468,10 +464,6 @@ def _update_precond_affine_math_(
                     step1 = precond_lr / add_eps(_norm_lower_bound(grad1))
                     step2 = precond_lr / add_eps(_norm_lower_bound(grad2))
 
-                # lr
-                step1 *= lr_decay(step)
-                step2 *= lr_decay(step)
-
                 Ql -= step1 * grad1 @ Ql
                 Qr -= step2 * grad2 @ Qr
             else:  # Ql.dim()=2 and Qr.dim()=1:
@@ -491,10 +483,6 @@ def _update_precond_affine_math_(
                 else:
                     step1 = precond_lr / add_eps(_norm_lower_bound(grad1))
                     step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
-
-                # lr
-                step1 *= lr_decay(step)
-                step2 *= lr_decay(step)
 
                 Ql -= step1 * grad1 @ Ql
                 Qr -= step2 * grad2 * Qr
@@ -519,10 +507,6 @@ def _update_precond_affine_math_(
                     step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                     step2 = precond_lr / add_eps(_norm_lower_bound(grad2))
 
-                # lr
-                step1 *= lr_decay(step)
-                step2 *= lr_decay(step)
-
                 Ql -= step1 * grad1 * Ql
                 Qr -= step2 * grad2 @ Qr
             else:  # Ql.dim()=1 and Qr.dim()=1:
@@ -544,10 +528,6 @@ def _update_precond_affine_math_(
                 else:
                     step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                     step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
-
-                # lr
-                step1 *= lr_decay(step)
-                step2 *= lr_decay(step)
 
                 Ql -= step1 * grad1 * Ql
                 Qr -= step2 * grad2 * Qr
@@ -610,10 +590,6 @@ def _update_precond_affine_dropv_math(
                 step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                 step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
 
-            # lr
-            step1 *= lr_decay(step)
-            step2 *= lr_decay(step)
-
             Ql -= step1 * grad1 * Ql
             Qr -= step2 * grad2 * Qr
 
@@ -641,10 +617,6 @@ def _update_precond_affine_dropv_math(
                 step1 = precond_lr / add_eps(jnp.max(jnp.abs(grad1)))
                 step2 = precond_lr / add_eps(_norm_lower_bound(grad2))
 
-            # lr
-            step1 *= lr_decay(step)
-            step2 *= lr_decay(step)
-
             Ql -= step1 * grad1 * Ql
             Qr -= step2 * grad2 @ Qr
 
@@ -671,10 +643,6 @@ def _update_precond_affine_dropv_math(
             else:
                 step1 = precond_lr / add_eps(_norm_lower_bound(grad1))
                 step2 = precond_lr / add_eps(jnp.max(jnp.abs(grad2)))
-
-            # lr
-            step1 *= lr_decay(step)
-            step2 *= lr_decay(step)
 
             Ql -= step1 * grad1 @ Ql
             Qr -= step2 * grad2 * Qr

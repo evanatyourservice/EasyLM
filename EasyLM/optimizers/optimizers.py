@@ -87,8 +87,8 @@ class PSGDOptimizerFactory(object):
         config.precond_update_probability = 0.1
         config.precond_lr = 0.01
         config.precond_init_scale = 0.0
-        config.max_size_triangular = 32
-        config.max_skew_triangular = 4096
+        config.max_size_triangular = 64
+        config.max_skew_triangular = 32
         config.normalize = True
         config.adaptive = True
         config.bf16_momentum = True
@@ -121,6 +121,13 @@ class PSGDOptimizerFactory(object):
             transition_steps=10_000,
             decay_rate=0.01,
         )
+        precond_lr_schedule = optax.warmup_exponential_decay_schedule(
+            init_value=1e-6,
+            peak_value=config.precond_lr,
+            warmup_steps=20,
+            transition_steps=10_000,
+            decay_rate=0.01,
+        )
 
         optimizer_info = dict(
             learning_rate_schedule=learning_rate_schedule,
@@ -136,7 +143,7 @@ class PSGDOptimizerFactory(object):
             mask=weight_decay_mask,
             max_size_triangular=config.max_size_triangular,
             max_skew_triangular=config.max_skew_triangular,
-            precond_lr=config.precond_lr,
+            precond_lr=precond_lr_schedule,
             precond_init_scale=(
                 config.precond_init_scale
                 if config.precond_init_scale > 0.0
