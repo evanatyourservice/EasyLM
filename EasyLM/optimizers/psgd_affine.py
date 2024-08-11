@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Any, Optional, Union, Callable, NamedTuple, List
 
 import jax
@@ -192,7 +193,7 @@ def scale_by_affine(
             key, subkey = jax.random.split(key)
             update_preconditioner = jnp.logical_or(
                 jax.random.uniform(subkey) < preconditioner_update_probability,
-                state.count == 0,
+                state.count < 2,
             )
             # use grads as Hvp
             Hvp = updates
@@ -656,7 +657,7 @@ def _update_precond_affine_dropv_math(
             #   2) gradient is a short matrix, but left side is a diagonal preconditioner, right side is dense
             #   3) both sides use dense preconditioner, but gradient is skewed (no saving for square shape gradient)
             key, subkey = jax.random.split(key)
-            v = otu.tree_random_like(subkey, dG, jax.random.normal)
+            v = jax.random.rademacher(subkey, dG.shape, dtype=dG.dtype)
             key, subkey = jax.random.split(key)
             return _update_precond_affine_math_(
                 subkey, Ql, Qr, v, dG, precond_lr, step_normalizer, precision, step

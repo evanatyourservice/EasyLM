@@ -189,6 +189,7 @@ def main(argv):
             hess_rng, subkey = jax.random.split(hess_rng)
             loss_out, grads, hvp, vector, update_precond = hessian_helper(
                 subkey,
+                train_state.step,
                 loss_and_accuracy,
                 train_state.params,
                 loss_fn_extra_args=(rngs,),

@@ -15,6 +15,7 @@ def add_eps(x):
 
 def hessian_helper(
     key: PRNGKey,
+    train_step: int,
     loss_fn: Callable,
     params: base.Params,
     loss_fn_extra_args: Tuple = (),
@@ -32,6 +33,7 @@ def hessian_helper(
 
     Args:
         key: PRNGKey, random key.
+        train_step: int, current train step needed to init preconditioner on first step.
         loss_fn: callable, loss function.
         params: flax.Params, model parameters.
         loss_fn_extra_args: tuple, extra arguments for loss function to be used as
@@ -47,30 +49,30 @@ def hessian_helper(
         update_preconditioner: bool, whether we're updating preconditioner this step.
     """
     obj_fn = lambda params: loss_fn(params, *loss_fn_extra_args)
+    key1, key2 = jax.random.split(key)
 
     def grad_fn(params):
         loss_out, grad = jax.value_and_grad(obj_fn, has_aux=has_aux)(params)
         return grad, loss_out
 
-    def hvp_fn(params, key):
-        vector = otu.tree_random_like(
-            key, params, partial(jax.random.rademacher, dtype=jnp.float32)
-        )
+    def hvp_fn(params):
+        vector = otu.tree_random_like(key1, params, partial(jax.random.rademacher, dtype=jnp.float32))
         grad, hvp, loss_out = jax.jvp(grad_fn, (params,), (vector,), has_aux=True)
         return grad, loss_out, hvp, vector
 
-    def g_fn(params, _):
+    # TODO (evanatyourservice): finite difference hvp option
+
+    def g_fn(params):
         grad, loss_out = grad_fn(params)
         dummy_hvp = jax.tree.map(jnp.zeros_like, params)
         dummy_vector = jax.tree.map(jnp.zeros_like, params)
         return grad, loss_out, dummy_hvp, dummy_vector
 
-    key, subkey = jax.random.split(key)
-    update_precond = jax.random.uniform(subkey) < preconditioner_update_probability
-    key, subkey = jax.random.split(key)
-    grad, loss_out, hvp, vector = jax.lax.cond(
-        update_precond, hvp_fn, g_fn, params, subkey
+    update_precond = jnp.logical_or(
+        jax.random.uniform(key2) < preconditioner_update_probability, train_step < 2
     )
+
+    grad, loss_out, hvp, vector = jax.lax.cond(update_precond, hvp_fn, g_fn, params)
     return loss_out, grad, hvp, vector, update_precond
 
 
