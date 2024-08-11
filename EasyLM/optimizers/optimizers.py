@@ -103,7 +103,7 @@ class PSGDOptimizerFactory(object):
     def get_optimizer(cls, config, weight_decay_mask=None):
         config = cls.get_default_config(config)
 
-        '''learning_rate_schedule = optax.join_schedules(
+        learning_rate_schedule = optax.join_schedules(
             schedules=[
                 optax.linear_schedule(
                     config.init_lr, config.lr, config.lr_warmup_steps
@@ -113,20 +113,6 @@ class PSGDOptimizerFactory(object):
                 ),
             ],
             boundaries=[config.lr_warmup_steps],
-        )'''
-        learning_rate_schedule = optax.warmup_exponential_decay_schedule(
-            init_value=0.0,
-            peak_value=config.lr,
-            warmup_steps=config.lr_warmup_steps,
-            transition_steps=10_000,
-            decay_rate=0.01,
-        )
-        precond_lr_schedule = optax.warmup_exponential_decay_schedule(
-            init_value=0.0001,
-            peak_value=config.precond_lr,
-            warmup_steps=10,
-            transition_steps=10_000,
-            decay_rate=0.01,
         )
 
         optimizer_info = dict(
@@ -143,7 +129,7 @@ class PSGDOptimizerFactory(object):
             mask=weight_decay_mask,
             max_size_triangular=config.max_size_triangular,
             max_skew_triangular=config.max_skew_triangular,
-            precond_lr=precond_lr_schedule,
+            precond_lr=config.precond_lr,
             precond_init_scale=(
                 config.precond_init_scale
                 if config.precond_init_scale > 0.0
