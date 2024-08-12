@@ -4,7 +4,7 @@ umask 000
 
 python -m EasyLM.models.llama.llama_train \
     --mesh_dim='1,-1,1' \
-    --dtype='bfloat16' \
+    --dtype='fp32' \
     --total_steps=20000 \
     --log_freq=50 \
     --save_model_freq=1000000 \
