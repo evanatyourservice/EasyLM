@@ -7,8 +7,8 @@ python -m EasyLM.models.llama.llama_train \
     --dtype='bfloat16' \
     --total_steps=20000 \
     --log_freq=50 \
-    --save_model_freq=1e6 \
-    --save_milestone_freq=1e6 \
+    --save_model_freq=1000000 \
+    --save_milestone_freq=1000000 \
     --eval_steps 5 \
     --calc_hessian=False \
     --update_prob=0.1 \
