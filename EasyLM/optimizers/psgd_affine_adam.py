@@ -64,12 +64,6 @@ def scale_by_affine(
     """
     mu_dtype = canonicalize_dtype(mu_dtype)
 
-    adam = optax.chain(
-        # norm_grads(),
-        optax.clip_by_global_norm(gradient_clip) if gradient_clip is not None else optax.identity,
-        scale_by_adam(b1=b1, b2=b2, mu_dtype=mu_dtype, nesterov=nesterov),
-    )
-
     def init_fn(params):
         key = seed if seed is not None else jax.random.PRNGKey(36)
 
@@ -239,6 +233,7 @@ def scale_by_affine(
             momentum_updates, mu = apply_momentum(
                 updates, state.mu, count_inc, b1, nesterov
             )
+            mu = otu.tree_cast(mu, mu_dtype)
         else:
             momentum_updates = updates
             mu = state.mu
@@ -254,7 +249,6 @@ def scale_by_affine(
             lambda x, nu: x / (jnp.sqrt(nu) + 1e-8), momentum_updates, nu_hat
         )
 
-        mu = otu.tree_cast(mu, mu_dtype)
         state = PSGDAffineState(count=count_inc, key=key, Qs=Qs, mu=mu, nu=nu)
         return updates, state
 

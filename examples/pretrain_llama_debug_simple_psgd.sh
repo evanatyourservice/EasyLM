@@ -28,7 +28,7 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.nesterov=True \
     --optimizer.psgd_optimizer.precond_update_probability=0.1 \
     --optimizer.psgd_optimizer.precond_lr=0.01 \
-    --optimizer.psgd_optimizer.precond_init_scale=0.0 \
+    --optimizer.psgd_optimizer.precond_init_scale=0.001 \
     --optimizer.psgd_optimizer.max_size_triangular=1024 \
     --optimizer.psgd_optimizer.max_skew_triangular=1024 \
     --optimizer.psgd_optimizer.normalize=True \
