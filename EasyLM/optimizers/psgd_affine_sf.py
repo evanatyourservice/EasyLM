@@ -1,6 +1,7 @@
 from typing import Any, Optional, Union, Callable, NamedTuple, List
 
 import jax
+import optax
 from jax import numpy as jnp
 from jax.random import PRNGKey
 
@@ -204,7 +205,8 @@ def scale_by_affine(
                     )
                     for (k, Qlr, h) in zip(keys, Qs, jax.tree.leaves(Hvs))
                 ]
-                Qs, sf_state = sf.update(Qs_updates, sf_state, Qs)
+                Qs_updates, sf_state = sf.update(Qs_updates, sf_state, Qs)
+                Qs = optax.apply_updates(Qs, Qs_updates)
 
             # balance Qs
             def _balance(Qlr):
