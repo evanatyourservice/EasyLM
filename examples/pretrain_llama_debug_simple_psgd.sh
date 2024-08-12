@@ -4,13 +4,13 @@ umask 000
 
 python -m EasyLM.models.llama.llama_train \
     --mesh_dim='1,-1,1' \
-    --dtype='fp32' \
+    --dtype='bfloat16' \
     --total_steps=20000 \
     --log_freq=50 \
-    --save_model_freq=1000000 \
-    --save_milestone_freq=1000000 \
+    --save_model_freq=10000000 \
+    --save_milestone_freq=100 \
     --eval_steps 5 \
-    --calc_hessian=True \
+    --calc_hessian=False \
     --update_prob=0.1 \
     --l2_reg=0.0 \
     --load_llama_config='3b' \
@@ -27,10 +27,10 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.clip_gradient=1.0 \
     --optimizer.psgd_optimizer.nesterov=True \
     --optimizer.psgd_optimizer.precond_update_probability=0.1 \
-    --optimizer.psgd_optimizer.precond_lr=0.001 \
+    --optimizer.psgd_optimizer.precond_lr=0.01 \
     --optimizer.psgd_optimizer.precond_init_scale=0.0 \
-    --optimizer.psgd_optimizer.max_size_triangular=64 \
-    --optimizer.psgd_optimizer.max_skew_triangular=32 \
+    --optimizer.psgd_optimizer.max_size_triangular=512 \
+    --optimizer.psgd_optimizer.max_skew_triangular=512 \
     --optimizer.psgd_optimizer.normalize=True \
     --optimizer.psgd_optimizer.adaptive=True \
     --optimizer.psgd_optimizer.bf16_momentum=True \
@@ -55,6 +55,6 @@ python -m EasyLM.models.llama.llama_train \
     --logger.online=True \
     --logger.prefix='EasyLM' \
     --logger.project="open_llama_evan" \
-    --logger.output_dir="$HOME/bucket/evan_llm/output_dir" \
-    --logger.wandb_dir="$HOME/bucket/evan_llm/wandb_dir" \
+    --logger.output_dir="gs://uscentral1stuff/checkpoints" \
+    --logger.wandb_dir="/dev/shm/wandb" \
 |& tee $HOME/output.txt

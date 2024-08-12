@@ -24,7 +24,7 @@ class PSGDAffineState(NamedTuple):
 def scale_by_affine(
     preconditioner_update_probability: float = 1.0,
     b1: float = 0.9,
-    b2: float = 0.999,
+    b2: float = 0.99,
     nesterov: bool = True,
     gradient_clip: Optional[float] = None,
     max_size_triangular: int = 4096,
@@ -64,7 +64,8 @@ def scale_by_affine(
     mu_dtype = canonicalize_dtype(mu_dtype)
 
     adam = optax.chain(
-        norm_grads(),
+        # norm_grads(),
+        optax.clip_by_global_norm(gradient_clip) if gradient_clip is not None else optax.identity,
         scale_by_adam(b1=b1, b2=b2, mu_dtype=mu_dtype, nesterov=nesterov),
     )
 
