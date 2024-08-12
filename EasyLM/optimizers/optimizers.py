@@ -16,8 +16,7 @@ import optax
 from optax._src import transform
 
 from EasyLM.jax_utils import float_to_dtype
-from EasyLM.optimizers.psgd_xmat import scale_by_xmat
-from EasyLM.optimizers.psgd_affine_sf import affine
+from EasyLM.optimizers.psgd_affine_adam import affine
 
 
 class OptimizerFactory(object):
@@ -123,6 +122,7 @@ class PSGDOptimizerFactory(object):
             learning_rate=learning_rate_schedule,
             preconditioner_update_probability=config.precond_update_probability,
             b1=config.b1,
+            b2=config.b2,
             nesterov=config.nesterov,
             gradient_clip=config.clip_gradient,
             weight_decay=config.weight_decay,

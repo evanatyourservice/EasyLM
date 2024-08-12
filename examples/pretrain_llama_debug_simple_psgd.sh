@@ -12,14 +12,14 @@ python -m EasyLM.models.llama.llama_train \
     --eval_steps 5 \
     --calc_hessian=True \
     --update_prob=0.1 \
-    --l2_reg=0.0001 \
+    --l2_reg=0.0 \
     --load_llama_config='3b' \
     --update_llama_config='' \
     --load_dataset_state='' \
     --load_checkpoint='' \
     --optimizer.type='psgd' \
-    --optimizer.psgd_optimizer.weight_decay=0.0001 \
-    --optimizer.psgd_optimizer.lr=0.1 \
+    --optimizer.psgd_optimizer.weight_decay=0.01 \
+    --optimizer.psgd_optimizer.lr=0.01 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
     --optimizer.psgd_optimizer.lr_decay_steps=20000 \
     --optimizer.psgd_optimizer.b1=0.9 \
@@ -27,7 +27,7 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.clip_gradient=1.0 \
     --optimizer.psgd_optimizer.nesterov=True \
     --optimizer.psgd_optimizer.precond_update_probability=0.1 \
-    --optimizer.psgd_optimizer.precond_lr=0.1 \
+    --optimizer.psgd_optimizer.precond_lr=0.01 \
     --optimizer.psgd_optimizer.precond_init_scale=0.0 \
     --optimizer.psgd_optimizer.max_size_triangular=64 \
     --optimizer.psgd_optimizer.max_skew_triangular=32 \

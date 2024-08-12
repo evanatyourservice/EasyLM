@@ -13,7 +13,6 @@ from optax._src.utils import canonicalize_dtype
 from optax._src.combine import chain
 
 from EasyLM.optimizers.utils import add_eps, apply_momentum
-from EasyLM.optimizers.schedule_free import schedule_free, schedule_free_eval_params
 
 
 class PSGDXMatState(NamedTuple):
