@@ -7,8 +7,8 @@ python -m EasyLM.models.llama.llama_train \
     --dtype='bfloat16' \
     --total_steps=20000 \
     --log_freq=50 \
-    --save_model_freq=10000000 \
-    --save_milestone_freq=100 \
+    --save_model_freq=1e6 \
+    --save_milestone_freq=1e6 \
     --eval_steps 5 \
     --calc_hessian=False \
     --update_prob=0.1 \
@@ -26,11 +26,11 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.b2=0.95 \
     --optimizer.psgd_optimizer.clip_gradient=1.0 \
     --optimizer.psgd_optimizer.nesterov=True \
-    --optimizer.psgd_optimizer.precond_update_probability=0.1 \
+    --optimizer.psgd_optimizer.precond_update_probability=0.2 \
     --optimizer.psgd_optimizer.precond_lr=0.01 \
     --optimizer.psgd_optimizer.precond_init_scale=0.0 \
-    --optimizer.psgd_optimizer.max_size_triangular=512 \
-    --optimizer.psgd_optimizer.max_skew_triangular=512 \
+    --optimizer.psgd_optimizer.max_size_triangular=1024 \
+    --optimizer.psgd_optimizer.max_skew_triangular=1024 \
     --optimizer.psgd_optimizer.normalize=True \
     --optimizer.psgd_optimizer.adaptive=True \
     --optimizer.psgd_optimizer.bf16_momentum=True \

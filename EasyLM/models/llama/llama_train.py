@@ -107,10 +107,11 @@ def main(argv):
 
     tokenizer = AutoTokenizer.from_pretrained(FLAGS.tokenizer)
     dataset = DatasetFactory.load_dataset(FLAGS.train_dataset, tokenizer)
-    dataset_run = prefetch(dataset, FLAGS.log_freq + 2)
 
     if FLAGS.load_dataset_state != "":
         dataset.load_state_dict(mlxu.load_pickle(FLAGS.load_dataset_state))
+
+    dataset_prefetch = prefetch(dataset, FLAGS.log_freq + 1)
 
     if FLAGS.eval_steps > 0:
         eval_dataset = DatasetFactory.load_dataset(
@@ -339,7 +340,7 @@ def main(argv):
 
         step_counter = trange(start_step, FLAGS.total_steps, ncols=0)
 
-        for step, (batch, dataset_metrics) in zip(step_counter, dataset_run):
+        for step, (batch, dataset_metrics) in zip(step_counter, dataset_prefetch):
             train_state, sharded_rng, metrics, hess_rng = sharded_train_step(
                 train_state, sharded_rng, batch, hess_rng
             )

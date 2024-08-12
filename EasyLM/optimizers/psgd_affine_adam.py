@@ -17,20 +17,21 @@ from EasyLM.optimizers.utils import add_eps, apply_momentum
 class PSGDAffineState(NamedTuple):
     count: jax.Array
     key: PRNGKey
+    mu: base.Updates
+    nu: base.Updates
     Qs: List[List[jax.Array]]
-    adam_state: Any
 
 
 def scale_by_affine(
     preconditioner_update_probability: float = 1.0,
     b1: float = 0.9,
-    b2: float = 0.99,
+    b2: float = 0.95,
     nesterov: bool = True,
     gradient_clip: Optional[float] = None,
     max_size_triangular: int = 4096,
     max_skew_triangular: int = 128,
     step_normalizer_order: str = "2nd",
-    precond_lr: Union[float, Callable[[int], float]] = 0.1,
+    precond_lr: Union[float, Callable[[int], float]] = 0.01,
     precond_init_scale: Optional[float] = None,
     seed: Optional[PRNGKey] = None,
     mu_dtype: Optional[Union[str, jnp.dtype]] = None,
@@ -72,6 +73,16 @@ def scale_by_affine(
     def init_fn(params):
         key = seed if seed is not None else jax.random.PRNGKey(36)
 
+        # momentum
+        if b1 > 0:
+            print("PSGD: Using momentum.")
+            mu = otu.tree_zeros_like(params, mu_dtype)
+        else:
+            mu = jnp.zeros([])
+
+        # layer-wise second moment
+        nu = jax.tree.map(lambda x: jnp.zeros([], dtype=jnp.float32), params)
+
         # preconditioners
         affine_reshapers = [_shape_as_matrix(x) for x in jax.tree.leaves(params)]
         Qs = [
@@ -79,11 +90,8 @@ def scale_by_affine(
             for s in affine_reshapers
         ]
 
-        # adam state
-        adam_state = adam.init(params)
-
         # initial state
-        return PSGDAffineState(count=jnp.zeros([], jnp.int32), key=key, Qs=Qs, adam_state=adam_state)
+        return PSGDAffineState(count=jnp.zeros([], jnp.int32), key=key, mu=mu, nu=nu, Qs=Qs)
 
     def update_fn(
         updates: base.Updates,
@@ -226,10 +234,28 @@ def scale_by_affine(
         flat_updates = [r[1](u) for u, r in zip(flat_updates, affine_reshapers)]
         updates = jax.tree_unflatten(jax.tree.structure(updates), flat_updates)
 
-        # apply adam
-        updates, adam_state = adam.update(updates, state.adam_state)
+        # momentum
+        if b1 > 0:
+            momentum_updates, mu = apply_momentum(
+                updates, state.mu, count_inc, b1, nesterov
+            )
+        else:
+            momentum_updates = updates
+            mu = state.mu
 
-        state = PSGDAffineState(count=count_inc, key=key, Qs=Qs, adam_state=adam_state)
+        # second moment
+        nu = jax.tree.map(
+            lambda nu, update: b2 * nu + (1 - b2) * jnp.mean(update ** 2),
+            state.nu,
+            updates,
+        )
+        nu_hat = optax.bias_correction(nu, b2, count_inc)
+        updates = jax.tree.map(
+            lambda x, nu: x / (jnp.sqrt(nu) + 1e-8), momentum_updates, nu_hat
+        )
+
+        mu = otu.tree_cast(mu, mu_dtype)
+        state = PSGDAffineState(count=count_inc, key=key, Qs=Qs, mu=mu, nu=nu)
         return updates, state
 
     return base.GradientTransformationExtraArgs(init_fn, update_fn)
@@ -239,7 +265,7 @@ def affine(
     learning_rate: Union[float, Callable[[int], float]] = 0.01,
     preconditioner_update_probability: float = 1.0,
     b1: float = 0.9,
-    b2: float = 0.999,
+    b2: float = 0.95,
     nesterov: bool = True,
     gradient_clip: Optional[float] = None,
     weight_decay: float = 0.0,
@@ -247,7 +273,7 @@ def affine(
     max_size_triangular: int = 4096,
     max_skew_triangular: int = 128,
     step_normalizer_order: str = "2nd",
-    precond_lr: Union[float, Callable[[int], float]] = 0.1,
+    precond_lr: Union[float, Callable[[int], float]] = 0.01,
     precond_init_scale: Optional[float] = None,
     seed: Optional[PRNGKey] = None,
     mu_dtype: Optional[Union[str, jnp.dtype]] = None,
