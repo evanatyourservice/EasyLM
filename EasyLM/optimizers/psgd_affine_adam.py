@@ -35,7 +35,8 @@ def scale_by_affine(
     precond_init_scale: Optional[float] = None,
     seed: Optional[PRNGKey] = None,
     mu_dtype: Optional[Union[str, jnp.dtype]] = None,
-    precision: str = "tensorfloat32",
+    update_precision: str = "float32",
+    apply_precision: str = "tensorfloat32",
 ) -> base.GradientTransformationExtraArgs:
     """
     Implements Affine PSGD from https://github.com/lixilinx/psgd_torch.
@@ -43,8 +44,8 @@ def scale_by_affine(
     Args:
         preconditioner_update_probability: float, probability of updating the
             preconditioner.
-        b1: float, momentum parameter.
-        b2: float, Adam parameter.
+        b1: float, momentum parameter, 0 to turn off.
+        b2: float, second moment parameter, 0 to turn off.
         nesterov: bool, whether to use Nesterov momentum.
         gradient_clip: optional float, global gradient norm clipping.
         max_size_triangular: int, max size for affine preconditioner to be
@@ -57,7 +58,10 @@ def scale_by_affine(
         seed: Optional PRNGKey, random seed.
         mu_dtype: optional str or jnp.dtype, dtype of the momentum accumulator.
             Defaults to the same dtype as the parameters.
-        precision: str, precision for matmul, 'bfloat16', 'tensorfloat32', 'float32'.
+        update_precision: str, 'bfloat16', 'tensorfloat32', 'float32', precision
+            preconditioner update.
+        apply_precision: str, 'bfloat16', 'tensorfloat32', 'float32', precision
+            for applying the preconditioner.
 
     Returns:
         optax.GradientTransformationExtraArgs
@@ -72,10 +76,13 @@ def scale_by_affine(
             print("PSGD: Using momentum.")
             mu = otu.tree_zeros_like(params, mu_dtype)
         else:
-            mu = jnp.zeros([])
+            mu = jnp.zeros([])  # unused
 
         # layer-wise second moment
-        nu = jax.tree.map(lambda x: jnp.zeros([], dtype=jnp.float32), params)
+        if b2 > 0:
+            nu = jax.tree.map(lambda x: jnp.zeros([], dtype=jnp.float32), params)
+        else:
+            nu = jnp.zeros([])  # unused
 
         # preconditioners
         affine_reshapers = [_shape_as_matrix(x) for x in jax.tree.leaves(params)]
@@ -149,8 +156,7 @@ def scale_by_affine(
                         h,
                         precond_lr_in,
                         step_normalizer_order,
-                        precision,
-                        count_inc,
+                        update_precision,
                     )
                     for (k, Qlr, v, h) in zip(
                         keys, Qs, jax.tree.leaves(vs), jax.tree.leaves(Hvs)
@@ -184,8 +190,7 @@ def scale_by_affine(
                         h,
                         precond_lr_in,
                         step_normalizer_order,
-                        precision,
-                        count_inc,
+                        update_precision,
                     )
                     for (k, Qlr, h) in zip(keys, Qs, jax.tree.leaves(Hvs))
                 ]
@@ -220,13 +225,18 @@ def scale_by_affine(
             r[0](u) for u, r in zip(jax.tree.leaves(updates), affine_reshapers)
         ]
         flat_updates = [
-            _precond_grad_affine_math(Qlr[0], Qlr[1], g)
+            _precond_grad_affine_math(Qlr[0], Qlr[1], g, apply_precision)
             for (Qlr, g) in zip(Qs, flat_updates)
         ]
 
         # permute and reshape back to original structure
         flat_updates = [r[1](u) for u, r in zip(flat_updates, affine_reshapers)]
         updates = jax.tree_unflatten(jax.tree.structure(updates), flat_updates)
+
+        if gradient_clip is not None:
+            updates, _ = clipping.clip_by_global_norm(gradient_clip).update(
+                updates, base.EmptyState
+            )
 
         # momentum
         if b1 > 0:
@@ -239,15 +249,19 @@ def scale_by_affine(
             mu = state.mu
 
         # second moment
-        nu = jax.tree.map(
-            lambda nu, update: b2 * nu + (1 - b2) * jnp.mean(update ** 2),
-            state.nu,
-            updates,
-        )
-        nu_hat = optax.bias_correction(nu, b2, count_inc)
-        updates = jax.tree.map(
-            lambda x, nu: x / (jnp.sqrt(nu) + 1e-8), momentum_updates, nu_hat
-        )
+        if b2 > 0:
+            nu = jax.tree.map(
+                lambda nu, update: b2 * nu + (1 - b2) * jnp.mean(update ** 2),
+                state.nu,
+                updates,
+            )
+            nu_hat = optax.bias_correction(nu, b2, count_inc)
+            updates = jax.tree.map(
+                lambda x, nu: x / (jnp.sqrt(nu) + 1e-8), momentum_updates, nu_hat
+            )
+        else:
+            updates = momentum_updates
+            nu = state.nu
 
         state = PSGDAffineState(count=count_inc, key=key, Qs=Qs, mu=mu, nu=nu)
         return updates, state
@@ -271,7 +285,8 @@ def affine(
     precond_init_scale: Optional[float] = None,
     seed: Optional[PRNGKey] = None,
     mu_dtype: Optional[Union[str, jnp.dtype]] = None,
-    precision: str = "tensorfloat32",
+    update_precision: str = "float32",
+    apply_precision: str = "tensorfloat32",
 ) -> base.GradientTransformationExtraArgs:
     """
     Implements Affine PSGD from https://github.com/lixilinx/psgd_torch.
@@ -296,7 +311,10 @@ def affine(
         seed: Optional PRNGKey, random seed.
         mu_dtype: optional str or jnp.dtype, dtype of the momentum accumulator.
             Defaults to the same dtype as the parameters.
-        precision: str, precision for matmul, 'bfloat16', 'tensorfloat32', 'float32'.
+        update_precision: str, 'bfloat16', 'tensorfloat32', 'float32', precision
+            preconditioner update.
+        apply_precision: str, 'bfloat16', 'tensorfloat32', 'float32', precision
+            for applying the preconditioner.
 
     Returns:
         optax.GradientTransformationExtraArgs
@@ -315,7 +333,8 @@ def affine(
             precond_init_scale=precond_init_scale,
             seed=seed,
             mu_dtype=mu_dtype,
-            precision=precision,
+            update_precision=update_precision,
+            apply_precision=apply_precision,
         )
     ]
     if weight_decay > 0:
@@ -461,7 +480,7 @@ def _solve_triangular(a, b, upper, left=True):
 
 
 def _update_precond_affine_math_(
-    key, Ql, Qr, dX, dG, precond_lr, step_normalizer, precision, step
+    key, Ql, Qr, dX, dG, precond_lr, step_normalizer, precision
 ):
     with jax.default_matmul_precision(precision):
         if Ql.ndim == 2:
@@ -571,7 +590,7 @@ def _update_precond_affine_math_(
 
 
 def _update_precond_affine_dropv_math(
-    key, Ql, Qr, dG, precond_lr, step_normalizer, precision, step
+    key, Ql, Qr, dG, precond_lr, step_normalizer, precision
 ):
     with jax.default_matmul_precision(precision):
 
@@ -680,25 +699,26 @@ def _update_precond_affine_dropv_math(
             v = jax.random.rademacher(subkey, dG.shape, dtype=dG.dtype)
             key, subkey = jax.random.split(key)
             return _update_precond_affine_math_(
-                subkey, Ql, Qr, v, dG, precond_lr, step_normalizer, precision, step
+                subkey, Ql, Qr, v, dG, precond_lr, step_normalizer, precision
             )
 
         return [Ql, Qr]
 
 
-def _precond_grad_affine_math(Ql, Qr, grad):
-    if Ql.ndim == 2:
-        if Qr.ndim == 2:  # Ql.ndim=2 and Qr.ndim=2:
-            return jnp.linalg.multi_dot([Ql.conj().T, Ql, grad, Qr.conj().T, Qr])
-        else:  # Ql.ndim=2 and Qr.ndim=1:
-            return jnp.linalg.multi_dot([Ql.conj().T, Ql, grad * (Qr * Qr.conj())])
-    else:
-        if Qr.ndim == 2:  # Ql.ndim=1 and Qr.ndim=2:
-            return jnp.linalg.multi_dot(
-                [(Ql * Ql.conj())[:, None] * grad, Qr.conj().T, Qr]
-            )
-        else:  # Ql.ndim=1 and Qr.ndim=1:
-            return (Ql * Ql.conj())[:, None] * grad * (Qr * Qr.conj())
+def _precond_grad_affine_math(Ql, Qr, grad, precision):
+    with jax.default_matmul_precision(precision):
+        if Ql.ndim == 2:
+            if Qr.ndim == 2:  # Ql.ndim=2 and Qr.ndim=2:
+                return jnp.linalg.multi_dot([Ql.conj().T, Ql, grad, Qr.conj().T, Qr])
+            else:  # Ql.ndim=2 and Qr.ndim=1:
+                return jnp.linalg.multi_dot([Ql.conj().T, Ql, grad * (Qr * Qr.conj())])
+        else:
+            if Qr.ndim == 2:  # Ql.ndim=1 and Qr.ndim=2:
+                return jnp.linalg.multi_dot(
+                    [(Ql * Ql.conj())[:, None] * grad, Qr.conj().T, Qr]
+                )
+            else:  # Ql.ndim=1 and Qr.ndim=1:
+                return (Ql * Ql.conj())[:, None] * grad * (Qr * Qr.conj())
 
 
 def scale_by_adam(

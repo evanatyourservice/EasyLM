@@ -76,7 +76,7 @@ class PSGDOptimizerFactory(object):
         config.init_lr = 0.0
         config.end_lr = 0.0
         config.lr = 0.001
-        config.lr_warmup_steps = 512
+        config.lr_warmup_steps = 1024
         config.lr_decay_steps = 200000
         config.b1 = 0.9
         config.b2 = 0.95
@@ -86,7 +86,7 @@ class PSGDOptimizerFactory(object):
         config.precond_update_probability = 0.1
         config.precond_lr = 0.01
         config.precond_init_scale = 0.0
-        config.max_size_triangular = 64
+        config.max_size_triangular = 1024
         config.max_skew_triangular = 32
         config.normalize = True
         config.adaptive = True
