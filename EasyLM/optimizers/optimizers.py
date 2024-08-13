@@ -136,6 +136,8 @@ class PSGDOptimizerFactory(object):
                 else None
             ),
             mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
+            update_precision="tensorfloat32",
+            apply_precision="bfloat16",
         )
 
         return optimizer, optimizer_info

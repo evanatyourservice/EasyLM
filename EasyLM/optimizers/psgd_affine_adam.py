@@ -1,5 +1,6 @@
 from typing import Any, Optional, Union, Callable, NamedTuple, List
 
+import flax
 import jax
 import optax
 from jax import numpy as jnp
@@ -17,9 +18,8 @@ from EasyLM.optimizers.utils import add_eps, apply_momentum
 class PSGDAffineState(NamedTuple):
     count: jax.Array
     key: PRNGKey
-    mu: base.Updates
-    nu: base.Updates
     Qs: List[List[jax.Array]]
+    adam_state: optax.ScaleByAdamState
 
 
 def scale_by_affine(
@@ -68,21 +68,13 @@ def scale_by_affine(
     """
     mu_dtype = canonicalize_dtype(mu_dtype)
 
+    adam = optax.chain(
+        norm_grads(layerwise=True),
+        scale_by_adam(b1=b1, b2=b2, mu_dtype=mu_dtype, nesterov=nesterov),
+    )
+
     def init_fn(params):
         key = seed if seed is not None else jax.random.PRNGKey(36)
-
-        # momentum
-        if b1 > 0:
-            print("PSGD: Using momentum.")
-            mu = otu.tree_zeros_like(params, mu_dtype)
-        else:
-            mu = jnp.zeros([])  # unused
-
-        # layer-wise second moment
-        if b2 > 0:
-            nu = jax.tree.map(lambda x: jnp.zeros([], dtype=jnp.float32), params)
-        else:
-            nu = jnp.zeros([])  # unused
 
         # preconditioners
         affine_reshapers = [_shape_as_matrix(x) for x in jax.tree.leaves(params)]
@@ -91,8 +83,13 @@ def scale_by_affine(
             for s in affine_reshapers
         ]
 
+        # adam
+        adam_state = adam.init(params)
+
         # initial state
-        return PSGDAffineState(count=jnp.zeros([], jnp.int32), key=key, mu=mu, nu=nu, Qs=Qs)
+        return PSGDAffineState(
+            count=jnp.zeros([], jnp.int32), key=key, Qs=Qs, adam_state=adam_state
+        )
 
     def update_fn(
         updates: base.Updates,
@@ -231,39 +228,22 @@ def scale_by_affine(
 
         # permute and reshape back to original structure
         flat_updates = [r[1](u) for u, r in zip(flat_updates, affine_reshapers)]
-        updates = jax.tree_unflatten(jax.tree.structure(updates), flat_updates)
+        psgd_updates = jax.tree_unflatten(jax.tree.structure(updates), flat_updates)
 
-        if gradient_clip is not None:
-            updates, _ = clipping.clip_by_global_norm(gradient_clip).update(
-                updates, base.EmptyState
-            )
+        # adam step
+        diag_updates, adam_state = adam.update(updates, state.adam_state)
 
-        # momentum
-        if b1 > 0:
-            momentum_updates, mu = apply_momentum(
-                updates, state.mu, count_inc, b1, nesterov
-            )
-            mu = otu.tree_cast(mu, mu_dtype)
-        else:
-            momentum_updates = updates
-            mu = state.mu
+        # graft
+        updates = jax.tree.map(
+            lambda psgd_u, diag_u: psgd_u
+            * (
+                jnp.linalg.norm(diag_u) / jnp.clip(jnp.linalg.norm(psgd_u), 1e-25, None)
+            ),
+            psgd_updates,
+            diag_updates,
+        )
 
-        # second moment
-        if b2 > 0:
-            nu = jax.tree.map(
-                lambda nu, update: b2 * nu + (1 - b2) * jnp.mean(update ** 2),
-                state.nu,
-                updates,
-            )
-            nu_hat = optax.bias_correction(nu, b2, count_inc)
-            updates = jax.tree.map(
-                lambda x, nu: x / (jnp.sqrt(nu) + 1e-8), momentum_updates, nu_hat
-            )
-        else:
-            updates = momentum_updates
-            nu = state.nu
-
-        state = PSGDAffineState(count=count_inc, key=key, Qs=Qs, mu=mu, nu=nu)
+        state = PSGDAffineState(count=count_inc, key=key, Qs=Qs, adam_state=adam_state)
         return updates, state
 
     return base.GradientTransformationExtraArgs(init_fn, update_fn)
@@ -726,7 +706,7 @@ def scale_by_adam(
     b2: float = 0.999,
     eps: float = 1e-8,
     eps_root: float = 0.0,
-    mu_dtype = None,
+    mu_dtype=None,
     nesterov: bool = False,
 ) -> base.GradientTransformation:
     """Same as optax version but doesn't create momentum buffer if b1 == 0."""
@@ -748,9 +728,7 @@ def scale_by_adam(
             if nesterov:
                 mu_hat = jax.tree.map(
                     lambda m, g: b1 * m + (1 - b1) * g,
-                    otu.tree_bias_correction(
-                        mu, b1, safe_int32_increment(count_inc)
-                    ),
+                    otu.tree_bias_correction(mu, b1, safe_int32_increment(count_inc)),
                     otu.tree_bias_correction(updates, b1, count_inc),
                 )
             else:
@@ -769,7 +747,17 @@ def scale_by_adam(
     return base.GradientTransformation(init_fn, update_fn)
 
 
-def norm_grads() -> base.GradientTransformation:
+def norm_grads(layerwise: bool = False) -> base.GradientTransformation:
+    """Gradient transformation that normalizes gradients to unit norm.
+
+    Args:
+        layerwise (bool): Whether to normalize gradients layer-wise, otherwise
+            the gradients are normalized globally.
+
+    Returns:
+        base.GradientTransformation: The gradient transformation
+    """
+
     def init_fn(params):
         del params
         return base.EmptyState()
@@ -777,9 +765,23 @@ def norm_grads() -> base.GradientTransformation:
     def update_fn(updates, state, params):
         del params
 
-        global_norm = optax.global_norm(updates)
-        global_norm = jnp.where(global_norm == 0, 1, global_norm)
-        updates = jax.tree.map(lambda g: g / global_norm, updates)
+        if layerwise:
+
+            def update_fn(g):
+                norm = jnp.linalg.norm(g)
+                norm = jnp.where(norm == 0, 1, norm)
+                return g / norm
+
+            g_regular = flax.traverse_util.ModelParamTraversal(
+                lambda path, param: "scan" not in path
+            ).update(update_fn, updates)
+            updates = flax.traverse_util.ModelParamTraversal(
+                lambda path, param: "scan" in path
+            ).update(jax.vmap(update_fn), g_regular)
+        else:
+            global_norm = optax.global_norm(updates)
+            global_norm = jnp.where(global_norm == 0, 1, global_norm)
+            updates = jax.tree.map(lambda g: g / global_norm, updates)
 
         return updates, state
 

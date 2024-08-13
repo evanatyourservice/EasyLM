@@ -76,6 +76,10 @@ FLAGS, FLAGS_DEF = mlxu.define_flags_with_default(
 
 
 def _keep_full(dataset, queue: Queue):
+    import datasets.config as ds_config
+    ds_config.STREAMING_READ_MAX_RETRIES = 86400 // 5  # Retry for 24 hours.
+    ds_config.STREAMING_READ_RETRY_INTERVAL = 5
+
     for item in dataset:
         queue.put(item)
     queue.put(None)
@@ -178,9 +182,15 @@ def main(argv):
 
             # l2 regularization
             if FLAGS.l2_reg > 0:
-                l2_loss = jnp.array(
-                    [jnp.mean(jnp.square(p)) for p in jax.tree.leaves(params)]
-                ).mean()
+                # TODO fix
+                kernels = jax.tree_util.tree_map_with_path(
+                    lambda path, arr: arr if "kernel" in path else None, params
+                )
+                to_l2 = []
+                for p in jax.tree.leaves(kernels):
+                    if p is not None:
+                        to_l2.append(jnp.mean(jnp.square(p)))
+                l2_loss = jnp.array(to_l2).mean()
                 loss += FLAGS.l2_reg * l2_loss
 
             return loss, (orig_loss, acc)

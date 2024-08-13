@@ -257,7 +257,6 @@ class LLaMAConfigurator(object):
         return ('params', 'dropout', 'fcm')
 
 
-
 class RMSNorm(nn.Module):
     dim: int
     eps: float=1e-6
@@ -266,7 +265,7 @@ class RMSNorm(nn.Module):
 
     def setup(self) -> None:
         self.weight = self.param(
-            'kernel',
+            'scale',
             nn.initializers.ones,
             (self.dim,),
             self.param_dtype,
