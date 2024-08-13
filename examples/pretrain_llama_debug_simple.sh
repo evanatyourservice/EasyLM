@@ -39,6 +39,6 @@ python -m EasyLM.models.llama.llama_train \
     --logger.online=True \
     --logger.prefix='EasyLM' \
     --logger.project="open_llama_evan" \
-    --logger.output_dir="$HOME/bucket/evan_llm/output_dir" \
-    --logger.wandb_dir="$HOME/bucket/evan_llm/wandb_dir" \
+    --logger.output_dir="gs://uscentral1stuff/checkpoints" \
+    --logger.wandb_dir="/dev/shm/wandb" \
 |& tee $HOME/output.txt
