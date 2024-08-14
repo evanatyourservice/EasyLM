@@ -197,7 +197,6 @@ def scale_by_xmat(
             flat_v_ema,
             flat_h,
             flat_v,
-            state.count,
         )
         a = a_struct.unflatten(a)
         b = a_struct.unflatten(b)
