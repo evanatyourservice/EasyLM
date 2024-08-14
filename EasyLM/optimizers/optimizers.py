@@ -16,7 +16,7 @@ import optax
 from optax._src import transform
 
 from EasyLM.jax_utils import float_to_dtype
-from EasyLM.optimizers.psgd_affine_adam import affine
+from EasyLM.optimizers.psgd_affine import affine
 
 
 class OptimizerFactory(object):
@@ -79,7 +79,6 @@ class PSGDOptimizerFactory(object):
         config.lr_warmup_steps = 1024
         config.lr_decay_steps = 200000
         config.b1 = 0.9
-        config.b2 = 0.95
         config.clip_gradient = 1.0
         config.weight_decay = 0.03
         config.nesterov = True
@@ -88,8 +87,6 @@ class PSGDOptimizerFactory(object):
         config.precond_init_scale = 0.0
         config.max_size_triangular = 1024
         config.max_skew_triangular = 32
-        config.normalize = True
-        config.adaptive = True
         config.bf16_momentum = True
         config.bf16_preconditioner = False
         config.multiply_by_parameter_scale = False
@@ -122,7 +119,6 @@ class PSGDOptimizerFactory(object):
             learning_rate=learning_rate_schedule,
             preconditioner_update_probability=config.precond_update_probability,
             b1=config.b1,
-            b2=config.b2,
             nesterov=config.nesterov,
             gradient_clip=config.clip_gradient,
             weight_decay=config.weight_decay,
@@ -136,8 +132,6 @@ class PSGDOptimizerFactory(object):
                 else None
             ),
             mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
-            update_precision="tensorfloat32",
-            apply_precision="bfloat16",
         )
 
         return optimizer, optimizer_info
