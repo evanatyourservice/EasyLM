@@ -16,6 +16,7 @@ import optax
 from optax._src import transform
 
 from EasyLM.jax_utils import float_to_dtype
+from EasyLM.optimizers.psgd_xmat_layerwise import xmat
 from EasyLM.optimizers.psgd_affine import affine
 
 
@@ -115,7 +116,7 @@ class PSGDOptimizerFactory(object):
             learning_rate_schedule=learning_rate_schedule,
         )
 
-        optimizer = affine(
+        """optimizer = affine(
             learning_rate=learning_rate_schedule,
             preconditioner_update_probability=config.precond_update_probability,
             b1=config.b1,
@@ -125,6 +126,22 @@ class PSGDOptimizerFactory(object):
             mask=weight_decay_mask,
             max_size_triangular=config.max_size_triangular,
             max_skew_triangular=config.max_skew_triangular,
+            precond_lr=config.precond_lr,
+            precond_init_scale=(
+                config.precond_init_scale
+                if config.precond_init_scale > 0.0
+                else None
+            ),
+            mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
+        )"""
+        optimizer = xmat(
+            learning_rate=learning_rate_schedule,
+            preconditioner_update_probability=config.precond_update_probability,
+            b1=config.b1,
+            nesterov=config.nesterov,
+            gradient_clip=config.clip_gradient,
+            weight_decay=config.weight_decay,
+            mask=weight_decay_mask,
             precond_lr=config.precond_lr,
             precond_init_scale=(
                 config.precond_init_scale

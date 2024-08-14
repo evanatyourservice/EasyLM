@@ -182,7 +182,6 @@ def main(argv):
 
             # l2 regularization
             if FLAGS.l2_reg > 0:
-                # TODO fix
                 kernels = jax.tree_util.tree_map_with_path(
                     lambda path, arr, *r: arr if "kernel" in path else None, params
                 )
