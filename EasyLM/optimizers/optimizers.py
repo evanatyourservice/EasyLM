@@ -17,7 +17,6 @@ from optax._src import transform
 
 from EasyLM.jax_utils import float_to_dtype
 from EasyLM.optimizers.psgd_xmat_layerwise import xmat
-from EasyLM.optimizers.psgd_affine import affine
 
 
 class OptimizerFactory(object):
@@ -134,21 +133,23 @@ class PSGDOptimizerFactory(object):
             ),
             mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
         )"""
-        optimizer = xmat(
-            learning_rate=learning_rate_schedule,
-            preconditioner_update_probability=config.precond_update_probability,
-            b1=config.b1,
-            nesterov=config.nesterov,
-            gradient_clip=config.clip_gradient,
-            weight_decay=config.weight_decay,
-            mask=weight_decay_mask,
-            precond_lr=config.precond_lr,
-            precond_init_scale=(
-                config.precond_init_scale
-                if config.precond_init_scale > 0.0
-                else None
+        optimizer = optax.chain(
+            optax.clip_by_global_norm(config.clip_gradient),
+            xmat(
+                learning_rate=learning_rate_schedule,
+                preconditioner_update_probability=config.precond_update_probability,
+                b1=config.b1,
+                nesterov=config.nesterov,
+                weight_decay=config.weight_decay,
+                mask=weight_decay_mask,
+                precond_lr=config.precond_lr,
+                precond_init_scale=(
+                    config.precond_init_scale
+                    if config.precond_init_scale > 0.0
+                    else None
+                ),
+                mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
             ),
-            mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
         )
 
         return optimizer, optimizer_info

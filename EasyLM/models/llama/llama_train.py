@@ -2,6 +2,8 @@ import pprint
 from functools import partial
 import multiprocessing as mp
 from multiprocessing import Queue, Process
+
+from flax.traverse_util import _sorted_items, flatten_dict, _get_params_dict
 from tqdm import tqdm, trange
 import numpy as np
 import mlxu
@@ -182,14 +184,12 @@ def main(argv):
 
             # l2 regularization
             if FLAGS.l2_reg > 0:
-                kernels = jax.tree_util.tree_map_with_path(
-                    lambda path, arr, *r: arr if "kernel" in path else None, params
-                )
                 to_l2 = []
-                for p in jax.tree.leaves(kernels):
-                    if p is not None:
-                        to_l2.append(jnp.mean(jnp.square(p)))
-                l2_loss = jnp.array(to_l2).mean()
+                for key, value in _sorted_items(flatten_dict(_get_params_dict(params))):
+                    path = "/" + "/".join(key)
+                    if "kernel" in path:
+                        to_l2.append(jnp.linalg.norm(value))
+                l2_loss = jnp.linalg.norm(jnp.array(to_l2))
                 loss += FLAGS.l2_reg * l2_loss
 
             return loss, (orig_loss, acc)

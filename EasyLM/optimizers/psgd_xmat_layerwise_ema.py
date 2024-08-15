@@ -20,6 +20,8 @@ class PSGDXMatState(NamedTuple):
     mu: Optional[base.Updates]
     a: base.Updates
     b: base.Updates
+    u_ema: base.Updates
+    v_ema: base.Updates
 
 
 def scale_by_xmat(
@@ -70,6 +72,10 @@ def scale_by_xmat(
         a = otu.tree_ones_like(params)
         b = otu.tree_zeros_like(params)
 
+        # exponential moving average
+        u_ema = otu.tree_zeros_like(params)
+        v_ema = otu.tree_zeros_like(params)
+
         # initial state
         return PSGDXMatState(
             count=jnp.zeros([], jnp.int32),
@@ -77,6 +83,8 @@ def scale_by_xmat(
             mu=mu,
             a=a,
             b=b,
+            u_ema=u_ema,
+            v_ema=v_ema,
         )
 
     def update_fn(
@@ -106,7 +114,7 @@ def scale_by_xmat(
         if isinstance(precond_lr, Callable):
             precond_lr_in = precond_lr(count_inc)
 
-        def _update_precond(key: PRNGKey, a, b, Hvs, vs):
+        def _update_precond(key: PRNGKey, a, b, u_ema, v_ema, Hvs, vs):
             def init_a(a, h, v):
                 if precond_init_scale is not None:
                     init_scale = precond_init_scale
@@ -132,23 +140,30 @@ def scale_by_xmat(
             # update preconditioner
             new_as = []
             new_bs = []
-            for ai, bi, v, h in zip(a, b, vs, Hvs):
-                new_a, new_b = _update_precond_Xmat_math_(
+            new_u_emas = []
+            new_v_emas = []
+            for ai, bi, u_emai, v_emai, v, h in zip(a, b, u_ema, v_ema, vs, Hvs):
+                new_a, new_b, new_u_ema, new_v_ema = _update_precond_Xmat_math_(
                     ai,
                     bi,
+                    u_emai,
+                    v_emai,
                     v,
                     h,
                     precond_lr_in,
                     step_normalizer_order,
                     precision,
+                    count_inc,
                 )
                 new_as.append(new_a)
                 new_bs.append(new_b)
+                new_u_emas.append(new_u_ema)
+                new_v_emas.append(new_v_ema)
 
-            return key, new_as, new_bs
+            return key, new_as, new_bs, new_u_emas, new_v_emas
 
-        def _dont_update_precond(key, a, b, Hvs, vs):
-            return key, a, b
+        def _dont_update_precond(key, a, b, u_ema, v_ema, Hvs, vs):
+            return key, a, b, u_ema, v_ema
 
         if not hessian_based_preconditioning:
             # update cond and vector not passed in, create here
@@ -167,20 +182,26 @@ def scale_by_xmat(
 
         flat_a, a_struct = jax.tree.flatten(state.a)
         flat_b, _ = jax.tree.flatten(state.b)
+        flat_u_ema, _ = jax.tree.flatten(state.u_ema)
+        flat_v_ema, _ = jax.tree.flatten(state.v_ema)
         flat_h, _ = jax.tree.flatten(Hvp)
         flat_v, _ = jax.tree.flatten(vector)
-        key, a, b = jax.lax.cond(
+        key, a, b, u_ema, v_ema = jax.lax.cond(
             update_preconditioner,
             _update_precond,
             _dont_update_precond,
             key,
             flat_a,
             flat_b,
+            flat_u_ema,
+            flat_v_ema,
             flat_h,
             flat_v,
         )
         a = a_struct.unflatten(a)
         b = a_struct.unflatten(b)
+        u_ema = a_struct.unflatten(u_ema)
+        v_ema = a_struct.unflatten(v_ema)
 
         # preconditioning
         updates = jax.tree.map(_precond_grad_Xmat_math, a, b, updates)
@@ -197,7 +218,9 @@ def scale_by_xmat(
             mu = jnp.zeros([], dtype=mu_dtype)
 
         mu = otu.tree_cast(mu, mu_dtype)
-        state = PSGDXMatState(count=count_inc, key=key, mu=mu, a=a, b=b)
+        state = PSGDXMatState(
+            count=count_inc, key=key, mu=mu, a=a, b=b, u_ema=u_ema, v_ema=v_ema
+        )
         return updates, state
 
     return base.GradientTransformationExtraArgs(init_fn, update_fn)
@@ -265,7 +288,9 @@ def flip(x):
     return jnp.flip(x, list(np.arange(x.ndim)))
 
 
-def _update_precond_Xmat_math_(a, b, v, h, precond_lr, step_normalizer, precision):
+def _update_precond_Xmat_math_(
+    a, b, u_ema, v_ema, v, h, precond_lr, step_normalizer, precision, step
+):
     """
     Update preconditioner Q = diag(a) + adiag(b) with (vector, Hessian-vector product) = (v, h).
     """
@@ -275,7 +300,15 @@ def _update_precond_Xmat_math_(a, b, v, h, precond_lr, step_normalizer, precisio
         invQtv = (aflip * v - bflip * flip(v)) / (a * aflip - b * bflip)
 
         u, v = Qh * Qh, invQtv * invQtv
-        nablaA = u - v
+
+        # ema of u and v
+        b2 = 0.9
+        u = otu.tree_update_moment(u, u_ema, b2, 1)
+        u_hat = otu.tree_bias_correction(u, b2, step)
+        v = otu.tree_update_moment(v, v_ema, b2, 1)
+        v_hat = otu.tree_bias_correction(v, b2, step)
+
+        nablaA = u_hat - v_hat
         nablaB = Qh * flip(Qh) - invQtv * flip(invQtv)
         orig_shape = nablaB.shape
         shape_without_ones = [s for s in orig_shape if s != 1]
@@ -286,7 +319,7 @@ def _update_precond_Xmat_math_(a, b, v, h, precond_lr, step_normalizer, precisio
             nablaB = nablaB.reshape(orig_shape)
 
         if step_normalizer == "2nd":
-            mu = precond_lr / add_eps(jnp.max(u + v))
+            mu = precond_lr / add_eps(jnp.max(u_hat + v_hat))
         else:
             mu = precond_lr / add_eps(
                 jnp.maximum(jnp.max(jnp.abs(nablaA)), jnp.max(jnp.abs(nablaB)))
@@ -295,7 +328,7 @@ def _update_precond_Xmat_math_(a, b, v, h, precond_lr, step_normalizer, precisio
         a -= mu * (nablaA * a + nablaB * bflip)
         b -= mu * (nablaA * b + nablaB * aflip)
 
-        return a, b
+        return a, b, u, v
 
 
 def _precond_grad_Xmat_math(a, b, g):
