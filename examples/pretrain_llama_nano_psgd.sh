@@ -5,7 +5,7 @@ umask 000
 python -m EasyLM.models.llama.llama_train \
     --mesh_dim='-1,1,1' \
     --dtype='fp32' \
-    --total_steps=50000 \
+    --total_steps=100000 \
     --log_freq=50 \
     --save_model_freq=1000000 \
     --save_milestone_freq=1000000 \
@@ -21,7 +21,7 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.weight_decay=0.01 \
     --optimizer.psgd_optimizer.lr=0.001 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
-    --optimizer.psgd_optimizer.lr_decay_steps=50000 \
+    --optimizer.psgd_optimizer.lr_decay_steps=100000 \
     --optimizer.psgd_optimizer.b1=0.9 \
     --optimizer.psgd_optimizer.clip_gradient=1.0 \
     --optimizer.psgd_optimizer.nesterov=False \
