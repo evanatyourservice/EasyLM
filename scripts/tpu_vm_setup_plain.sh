@@ -34,4 +34,5 @@ uvicorn
 gradio
 EndOfFile
 
+pip install --upgrade pip
 pip install --upgrade -r $HOME/tpu_requirements.txt
