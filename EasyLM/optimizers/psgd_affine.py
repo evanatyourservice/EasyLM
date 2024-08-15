@@ -210,6 +210,8 @@ def scale_by_affine(
         if state.mu is not None:
             updates, mu = apply_momentum(updates, state.mu, count_inc, b1, nesterov)
 
+        vanilla_updates = updates
+
         # preconditioning
         flat_updates = [
             r[0](u) for u, r in zip(jax.tree.leaves(updates), affine_reshapers)
@@ -227,6 +229,12 @@ def scale_by_affine(
             updates, _ = clipping.clip_by_global_norm(gradient_clip).update(
                 updates, base.EmptyState
             )
+
+        updates = jax.lax.cond(
+            count_inc <= 100,
+            lambda: vanilla_updates,
+            lambda: updates,
+        )
 
         mu = otu.tree_cast(mu, mu_dtype)
         state = PSGDAffineState(count=count_inc, key=key, mu=mu, Qs=Qs)
