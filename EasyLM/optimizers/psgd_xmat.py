@@ -159,8 +159,6 @@ def scale_by_xmat(
             [jnp.reshape(x, (-1,)) for x in jax.tree.leaves(updates)], 0
         )
         flat_updates = _precond_grad_Xmat_math(a, b, flat_updates)
-
-        # permute and reshape back to original structure
         with jax.ensure_compile_time_eval():
             params_struct = jax.tree.structure(updates)
             param_sizes = [x.size for x in jax.tree.leaves(updates)]
@@ -176,6 +174,8 @@ def scale_by_xmat(
             updates, _ = clipping.clip_by_global_norm(gradient_clip).update(
                 updates, base.EmptyState
             )
+
+        updates = jax.tree.map(lambda x: jnp.clip(x, -1.0, 1.0), updates)
 
         mu = otu.tree_cast(mu, mu_dtype)
         state = PSGDXMatState(count=count_inc, key=key, mu=mu, a=a, b=b)
