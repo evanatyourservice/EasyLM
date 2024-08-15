@@ -117,7 +117,7 @@ class PSGDOptimizerFactory(object):
         )
 
         optimizer = optax.chain(
-            # optax.clip_by_global_norm(config.clip_gradient),
+            optax.clip_by_global_norm(config.clip_gradient),
             affine(
                 learning_rate=learning_rate_schedule,
                 preconditioner_update_probability=config.precond_update_probability,
