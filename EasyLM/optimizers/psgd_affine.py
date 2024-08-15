@@ -205,13 +205,6 @@ def scale_by_affine(
             vector,
         )
 
-        # momentum
-        mu = None
-        if state.mu is not None:
-            updates, mu = apply_momentum(updates, state.mu, count_inc, b1, nesterov)
-
-        vanilla_updates = updates
-
         # preconditioning
         flat_updates = [
             r[0](u) for u, r in zip(jax.tree.leaves(updates), affine_reshapers)
@@ -231,6 +224,11 @@ def scale_by_affine(
             )
 
         updates = jax.tree.map(lambda x: jnp.clip(x, -1.0, 1.0), updates)
+        
+        # momentum
+        mu = None
+        if state.mu is not None:
+            updates, mu = apply_momentum(updates, state.mu, count_inc, b1, nesterov)
 
         mu = otu.tree_cast(mu, mu_dtype)
         state = PSGDAffineState(count=count_inc, key=key, mu=mu, Qs=Qs)
