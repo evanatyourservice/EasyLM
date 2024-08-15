@@ -19,7 +19,7 @@ python -m EasyLM.models.llama.llama_train \
     --load_checkpoint='' \
     --optimizer.type='psgd' \
     --optimizer.psgd_optimizer.weight_decay=0.01 \
-    --optimizer.psgd_optimizer.lr=0.001 \
+    --optimizer.psgd_optimizer.lr=0.0003 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
     --optimizer.psgd_optimizer.lr_decay_steps=10000 \
     --optimizer.psgd_optimizer.b1=0.9 \
@@ -27,7 +27,7 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.nesterov=True \
     --optimizer.psgd_optimizer.precond_update_probability=1.0 \
     --optimizer.psgd_optimizer.precond_lr=0.1 \
-    --optimizer.psgd_optimizer.precond_init_scale=0.1 \
+    --optimizer.psgd_optimizer.precond_init_scale=1.0 \
     --optimizer.psgd_optimizer.max_size_triangular=0 \
     --optimizer.psgd_optimizer.max_skew_triangular=0 \
     --optimizer.psgd_optimizer.bf16_momentum=True \

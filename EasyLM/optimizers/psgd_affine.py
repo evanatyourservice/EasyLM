@@ -230,11 +230,7 @@ def scale_by_affine(
                 updates, base.EmptyState
             )
 
-        updates = jax.lax.cond(
-            count_inc <= 100,
-            lambda: vanilla_updates,
-            lambda: updates,
-        )
+        updates = jax.tree.map(lambda x: jnp.clip(x, -1.0, 1.0), updates)
 
         mu = otu.tree_cast(mu, mu_dtype)
         state = PSGDAffineState(count=count_inc, key=key, mu=mu, Qs=Qs)
