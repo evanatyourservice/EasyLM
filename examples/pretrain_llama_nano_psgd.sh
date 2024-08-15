@@ -5,12 +5,12 @@ umask 000
 python -m EasyLM.models.llama.llama_train \
     --mesh_dim='-1,1,1' \
     --dtype='fp32' \
-    --total_steps=10000 \
+    --total_steps=50000 \
     --log_freq=50 \
     --save_model_freq=1000000 \
     --save_milestone_freq=1000000 \
     --eval_steps 5 \
-    --calc_hessian=True \
+    --calc_hessian=False \
     --update_prob=0.5 \
     --l2_reg=0.0 \
     --load_llama_config='3b' \
@@ -19,14 +19,14 @@ python -m EasyLM.models.llama.llama_train \
     --load_checkpoint='' \
     --optimizer.type='psgd' \
     --optimizer.psgd_optimizer.weight_decay=0.01 \
-    --optimizer.psgd_optimizer.lr=0.03 \
+    --optimizer.psgd_optimizer.lr=0.001 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
-    --optimizer.psgd_optimizer.lr_decay_steps=10000 \
+    --optimizer.psgd_optimizer.lr_decay_steps=50000 \
     --optimizer.psgd_optimizer.b1=0.9 \
     --optimizer.psgd_optimizer.clip_gradient=1.0 \
     --optimizer.psgd_optimizer.nesterov=False \
     --optimizer.psgd_optimizer.precond_update_probability=0.5 \
-    --optimizer.psgd_optimizer.precond_lr=0.1 \
+    --optimizer.psgd_optimizer.precond_lr=0.001 \
     --optimizer.psgd_optimizer.precond_init_scale=1.0 \
     --optimizer.psgd_optimizer.max_size_triangular=4096 \
     --optimizer.psgd_optimizer.max_skew_triangular=4096 \
