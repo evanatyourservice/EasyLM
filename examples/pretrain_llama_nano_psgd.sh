@@ -10,7 +10,7 @@ python -m EasyLM.models.llama.llama_train \
     --save_model_freq=1000000 \
     --save_milestone_freq=1000000 \
     --eval_steps 5 \
-    --calc_hessian=False \
+    --calc_hessian=True \
     --update_prob=0.1 \
     --l2_reg=0.0 \
     --load_llama_config='3b' \
@@ -19,7 +19,7 @@ python -m EasyLM.models.llama.llama_train \
     --load_checkpoint='' \
     --optimizer.type='psgd' \
     --optimizer.psgd_optimizer.weight_decay=0.01 \
-    --optimizer.psgd_optimizer.lr=0.001 \
+    --optimizer.psgd_optimizer.lr=0.01 \
     --optimizer.psgd_optimizer.lr_warmup_steps=512 \
     --optimizer.psgd_optimizer.lr_decay_steps=10000 \
     --optimizer.psgd_optimizer.b1=0.9 \
