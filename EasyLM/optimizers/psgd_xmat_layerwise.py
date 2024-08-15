@@ -182,6 +182,12 @@ def scale_by_xmat(
         a = a_struct.unflatten(a)
         b = a_struct.unflatten(b)
 
+        # momentum
+        if b1 > 0:
+            updates, mu = apply_momentum(updates, state.mu, count_inc, b1, nesterov)
+        else:
+            mu = jnp.zeros([], dtype=mu_dtype)
+
         # preconditioning
         updates = jax.tree.map(_precond_grad_Xmat_math, a, b, updates)
 
@@ -189,12 +195,6 @@ def scale_by_xmat(
             updates, _ = clipping.clip_by_global_norm(gradient_clip).update(
                 updates, base.EmptyState
             )
-
-        # momentum
-        if b1 > 0:
-            updates, mu = apply_momentum(updates, state.mu, count_inc, b1, nesterov)
-        else:
-            mu = jnp.zeros([], dtype=mu_dtype)
 
         mu = otu.tree_cast(mu, mu_dtype)
         state = PSGDXMatState(count=count_inc, key=key, mu=mu, a=a, b=b)
