@@ -56,7 +56,7 @@ def hessian_helper(
         return grad, loss_out
 
     def hvp_fn(params):
-        vector = otu.tree_random_like(key1, params, partial(jax.random.rademacher, dtype=jnp.float32))
+        vector = otu.tree_random_like(key1, params, jax.random.normal)
         grad, hvp, loss_out = jax.jvp(grad_fn, (params,), (vector,), has_aux=True)
         return grad, loss_out, hvp, vector
 

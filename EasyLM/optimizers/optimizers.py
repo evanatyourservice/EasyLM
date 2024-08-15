@@ -116,7 +116,7 @@ class PSGDOptimizerFactory(object):
             learning_rate_schedule=learning_rate_schedule,
         )
 
-        """optimizer = optax.chain(
+        optimizer = optax.chain(
             optax.clip_by_global_norm(config.clip_gradient),
             affine(
                 learning_rate=learning_rate_schedule,
@@ -136,8 +136,8 @@ class PSGDOptimizerFactory(object):
                 ),
                 mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
             ),
-        )"""
-        optimizer = optax.chain(
+        )
+        """optimizer = optax.chain(
             optax.clip_by_global_norm(config.clip_gradient),
             xmat(
                 learning_rate=learning_rate_schedule,
@@ -155,7 +155,7 @@ class PSGDOptimizerFactory(object):
                 ),
                 mu_dtype=jnp.bfloat16 if config.bf16_momentum else jnp.float32,
             ),
-        )
+        )"""
 
         return optimizer, optimizer_info
 
