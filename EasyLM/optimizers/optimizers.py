@@ -123,7 +123,7 @@ class PSGDOptimizerFactory(object):
                 preconditioner_update_probability=config.precond_update_probability,
                 b1=config.b1,
                 nesterov=config.nesterov,
-                gradient_clip=100.0,
+                gradient_clip=5_000.0,  # with lr of 0.001, this is 5.0
                 weight_decay=config.weight_decay,
                 mask=weight_decay_mask,
                 max_size_triangular=config.max_size_triangular,
