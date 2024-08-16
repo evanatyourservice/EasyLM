@@ -25,7 +25,7 @@ python -m EasyLM.models.llama.llama_train \
     --optimizer.psgd_optimizer.b1=0.9 \
     --optimizer.psgd_optimizer.clip_gradient=1.0 \
     --optimizer.psgd_optimizer.nesterov=False \
-    --optimizer.psgd_optimizer.precond_update_probability=1.0 \
+    --optimizer.psgd_optimizer.precond_update_probability=0.5 \
     --optimizer.psgd_optimizer.precond_lr=0.01 \
     --optimizer.psgd_optimizer.precond_init_scale=0.1 \
     --optimizer.psgd_optimizer.max_size_triangular=4096 \
