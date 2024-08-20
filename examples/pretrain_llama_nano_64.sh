@@ -3,7 +3,7 @@
 umask 000
 
 python -m EasyLM.models.llama.llama_train \
-    --mesh_dim='-1,1,1' \
+    --mesh_dim='-1,4,1' \
     --dtype='fp32' \
     --total_steps=100000 \
     --log_freq=100 \
@@ -15,7 +15,7 @@ python -m EasyLM.models.llama.llama_train \
     --load_dataset_state='' \
     --load_checkpoint='' \
     --optimizer.type='adamw' \
-    --optimizer.adamw_optimizer.weight_decay=0.01 \
+    --optimizer.adamw_optimizer.weight_decay=0.1 \
     --optimizer.adamw_optimizer.lr=0.001 \
     --optimizer.adamw_optimizer.lr_warmup_steps=512 \
     --optimizer.adamw_optimizer.lr_decay_steps=100000 \
